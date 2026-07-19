@@ -31,7 +31,29 @@ add_executable(${PROJECT_NAME}
     src/Layout/LayoutDumper.cpp
     src/Layout/FlexTests.cpp
     src/Graphics/RenderCommandBuilder.cpp
+    src/Graphics/VulkanRenderer.cpp
 )
 
+set(SHADER_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/Graphics/shaders)
+set(SHADER_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/shaders)
+file(MAKE_DIRECTORY ${SHADER_BINARY_DIR})
+
+set(VERT_SHADER ${SHADER_SOURCE_DIR}/quad.vert)
+set(FRAG_SHADER ${SHADER_SOURCE_DIR}/quad.frag)
+set(VERT_SPV ${SHADER_BINARY_DIR}/quad.vert.spv)
+set(FRAG_SPV ${SHADER_BINARY_DIR}/quad.frag.spv)
+
+add_custom_command(
+    OUTPUT ${VERT_SPV} ${FRAG_SPV}
+    COMMAND $ENV{VULKAN_SDK}/Bin/glslangValidator.exe -V ${VERT_SHADER} -o ${VERT_SPV}
+    COMMAND $ENV{VULKAN_SDK}/Bin/glslangValidator.exe -V ${FRAG_SHADER} -o ${FRAG_SPV}
+    DEPENDS ${VERT_SHADER} ${FRAG_SHADER}
+    COMMENT "Compiling GLSL shaders to SPIR-V"
+)
+
+add_custom_target(Shaders ALL DEPENDS ${VERT_SPV} ${FRAG_SPV})
+add_dependencies(${PROJECT_NAME} Shaders)
+
 target_include_directories(${PROJECT_NAME} PRIVATE ${Vulkan_INCLUDE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_compile_definitions(${PROJECT_NAME} PRIVATE SHADER_BINARY_DIR="${SHADER_BINARY_DIR}")
 target_link_libraries(${PROJECT_NAME} PRIVATE glfw ${Vulkan_LIBRARY})

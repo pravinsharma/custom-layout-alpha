@@ -48,7 +48,11 @@ Goal: a complete, spec-faithful CSS flexbox layout system for versatile GUI deve
 - [x] Compare computed outputs against expected CSS flexbox behavior
 
 ## Phase 4 — Future (out of scope for now)
-- [ ] Vulkan renderer integration for colored rects
+- [x] Vulkan renderer integration for colored rects
+  - [x] `src/Graphics/VulkanRenderer.h/.cpp` — Vulkan instance, device, swapchain, render pass, pipeline, framebuffers, command buffers, sync objects
+  - [x] `src/Graphics/shaders/quad.vert` / `quad.frag` — vertex/fragment shaders for colored rectangles
+  - [x] `buildRenderTree()` outputs `RenderCommand::Type::Rect` consumed by renderer
+  - [x] `main.cpp` wired to render computed layout in a window
 - [ ] CSS cascade / selector matching
 - [ ] Dirty layout / incremental recompute
 - [ ] Animation / transition hooks

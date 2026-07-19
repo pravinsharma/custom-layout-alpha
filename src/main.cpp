@@ -3,6 +3,7 @@
 #include "Layout/LayoutDumper.h"
 #include "Layout/FlexTests.h"
 #include "Graphics/RenderCommandBuilder.h"
+#include "Graphics/VulkanRenderer.h"
 #include "System/Console.h"
 
 #include <iostream>
@@ -73,11 +74,24 @@ int main()
         std::cout << "\nLayout dump:\n";
         std::cout << vkapp::Layout::LayoutDumper::dumpTree(root);
 
-        glfwSetWindowShouldClose(window.getHandle(), GLFW_TRUE);
+        vkapp::Graphics::VulkanRenderer renderer(window.getHandle());
+        if (!renderer.initialize()) {
+            std::cerr << "Failed to initialize Vulkan renderer\n";
+            return EXIT_FAILURE;
+        }
+
+        std::cout << "\nRendering... Close the window to exit.\n";
 
         while (!window.shouldClose()) {
             window.pollEvents();
+            renderer.render(commands);
+
+            if (renderer.needsResize()) {
+                renderer.resetResize();
+            }
         }
+
+        renderer.waitIdle();
     } catch (const std::exception& e) {
         std::cerr << "Unhandled exception: " << e.what() << "\n";
         return EXIT_FAILURE;
