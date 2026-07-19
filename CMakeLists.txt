@@ -20,7 +20,7 @@ endif()
 
 find_package(glfw3 CONFIG REQUIRED)
 
-add_executable(${PROJECT_NAME} src/main.cpp src/Window.cpp)
+add_executable(${PROJECT_NAME} src/main.cpp src/Window.cpp src/Keyboard.cpp src/Mouse.cpp)
 
 target_include_directories(${PROJECT_NAME} PRIVATE ${Vulkan_INCLUDE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_link_libraries(${PROJECT_NAME} PRIVATE glfw ${Vulkan_LIBRARY})

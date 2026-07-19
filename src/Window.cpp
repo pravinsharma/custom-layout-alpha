@@ -62,6 +62,10 @@ bool Window::initialize()
     m_window = window;
     glfwSetWindowUserPointer(m_window, this);
     glfwSetFramebufferSizeCallback(m_window, framebufferResizeCallback);
+    glfwSetKeyCallback(m_window, keyCallback);
+    glfwSetMouseButtonCallback(m_window, mouseButtonCallback);
+    glfwSetCursorPosCallback(m_window, cursorPosCallback);
+    glfwSetScrollCallback(m_window, scrollCallback);
 
     m_instanceExtensionCount = getInstanceExtensionCount();
     std::cout << m_instanceExtensionCount << " Vulkan instance extensions supported\n";
@@ -85,8 +89,10 @@ bool Window::shouldClose() const
     return glfwWindowShouldClose(m_window);
 }
 
-void Window::pollEvents() const
+void Window::pollEvents()
 {
+    m_keyboard.beginFrame();
+    m_mouse.beginFrame();
     glfwPollEvents();
 }
 
@@ -134,6 +140,38 @@ void Window::framebufferResizeCallback(GLFWwindow* window, int width, int height
     Window* owner = static_cast<Window*>(glfwGetWindowUserPointer(window));
     if (owner && owner->m_resizeCallback) {
         owner->m_resizeCallback(static_cast<uint32_t>(width), static_cast<uint32_t>(height));
+    }
+}
+
+void Window::keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
+{
+    Window* owner = static_cast<Window*>(glfwGetWindowUserPointer(window));
+    if (owner) {
+        owner->m_keyboard.onKeyEvent(key, scancode, action, mods);
+    }
+}
+
+void Window::mouseButtonCallback(GLFWwindow* window, int button, int action, int mods)
+{
+    Window* owner = static_cast<Window*>(glfwGetWindowUserPointer(window));
+    if (owner) {
+        owner->m_mouse.onButtonEvent(button, action, mods);
+    }
+}
+
+void Window::cursorPosCallback(GLFWwindow* window, double x, double y)
+{
+    Window* owner = static_cast<Window*>(glfwGetWindowUserPointer(window));
+    if (owner) {
+        owner->m_mouse.onCursorPosition(x, y);
+    }
+}
+
+void Window::scrollCallback(GLFWwindow* window, double xOffset, double yOffset)
+{
+    Window* owner = static_cast<Window*>(glfwGetWindowUserPointer(window));
+    if (owner) {
+        owner->m_mouse.onScroll(xOffset, yOffset);
     }
 }
 
