@@ -1,18 +1,17 @@
 #pragma once
 
-#include <GLFW/glfw3.h>
+#include "../Core/Event.h"
+#include "../Core/EventDispatcher.h"
 
 #include <array>
 #include <utility>
 
-namespace vkapp {
+namespace vkapp::Input {
 
 class Mouse {
 public:
     void beginFrame();
-    void onButtonEvent(int button, int action, int mods);
-    void onCursorPosition(double x, double y);
-    void onScroll(double xOffset, double yOffset);
+    void registerListeners(Core::EventDispatcher& dispatcher);
 
     bool isButtonDown(int button) const;
     bool isButtonUp(int button) const;
@@ -24,6 +23,8 @@ public:
     void resetScrollOffset();
 
 private:
+    bool onEvent(const Core::Event& event);
+
     static constexpr int ButtonCount = 8;
     std::array<bool, ButtonCount> m_currentButtons{};
     std::array<bool, ButtonCount> m_previousButtons{};
@@ -34,4 +35,4 @@ private:
     double m_scrollY = 0.0;
 };
 
-} // namespace vkapp
+} // namespace vkapp::Input

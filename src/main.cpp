@@ -1,11 +1,16 @@
-#include "Window.h"
+#include "Core/Window.h"
+#include "Core/EventDispatcher.h"
+#include "Input/Keyboard.h"
+#include "Input/Mouse.h"
+#include "System/Console.h"
 
 #include <iostream>
 
 int main()
 {
     try {
-        vkapp::Window window({
+        vkapp::Core::EventDispatcher dispatcher;
+        vkapp::Core::Window window({
             .width = 1280,
             .height = 720,
             .title = "Vulkan App",
@@ -13,19 +18,31 @@ int main()
             .fullscreen = false
         });
 
-        if (!window.initialize()) {
+        if (!window.initialize(dispatcher)) {
             return EXIT_FAILURE;
         }
+
+        vkapp::Input::Keyboard keyboard;
+        vkapp::Input::Mouse mouse;
+        keyboard.registerListeners(dispatcher);
+        mouse.registerListeners(dispatcher);
 
         window.setResizeCallback([](uint32_t width, uint32_t height) {
             std::cout << "Framebuffer resized: " << width << "x" << height << "\n";
         });
 
+        dispatcher.addListener([](const vkapp::Core::Event& event) {
+            if (event.getType() == vkapp::Core::EventType::WindowClose) {
+                std::cout << "Window close event received\n";
+                return true;
+            }
+            return false;
+        });
+
         while (!window.shouldClose()) {
             window.pollEvents();
-
-            const auto& keyboard = window.keyboard();
-            const auto& mouse = window.mouse();
+            keyboard.beginFrame();
+            mouse.beginFrame();
 
             if (keyboard.wasKeyPressed(GLFW_KEY_ESCAPE)) {
                 std::cout << "Escape pressed\n";

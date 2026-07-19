@@ -6,7 +6,7 @@
 #include <iostream>
 #include <stdexcept>
 
-namespace vkapp {
+namespace vkapp::Core {
 
 bool Window::s_glfwInitialized = false;
 
@@ -20,7 +20,7 @@ Window::~Window()
     shutdown();
 }
 
-bool Window::initialize()
+bool Window::initialize(EventDispatcher& dispatcher)
 {
     if (m_initialized) {
         return true;
@@ -67,6 +67,10 @@ bool Window::initialize()
     glfwSetCursorPosCallback(m_window, cursorPosCallback);
     glfwSetScrollCallback(m_window, scrollCallback);
 
+    m_dispatcher = &dispatcher;
+    m_keyboard.registerListeners(dispatcher);
+    m_mouse.registerListeners(dispatcher);
+
     m_instanceExtensionCount = getInstanceExtensionCount();
     std::cout << m_instanceExtensionCount << " Vulkan instance extensions supported\n";
 
@@ -94,15 +98,6 @@ void Window::pollEvents()
     m_keyboard.beginFrame();
     m_mouse.beginFrame();
     glfwPollEvents();
-}
-
-void Window::getFramebufferSize(uint32_t& width, uint32_t& height) const
-{
-    int w = 0;
-    int h = 0;
-    glfwGetFramebufferSize(m_window, &w, &h);
-    width = static_cast<uint32_t>(w);
-    height = static_cast<uint32_t>(h);
 }
 
 bool Window::createVulkanSurface(VkInstance instance, VkSurfaceKHR* surface) const
@@ -146,33 +141,59 @@ void Window::framebufferResizeCallback(GLFWwindow* window, int width, int height
 void Window::keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
     Window* owner = static_cast<Window*>(glfwGetWindowUserPointer(window));
-    if (owner) {
-        owner->m_keyboard.onKeyEvent(key, scancode, action, mods);
+    if (!owner || !owner->m_dispatcher) {
+        return;
+    }
+
+    if (action == GLFW_PRESS) {
+        KeyPressEvent event(key, scancode, mods);
+        owner->m_dispatcher->dispatch(event);
+    } else if (action == GLFW_RELEASE) {
+        KeyReleaseEvent event(key, scancode, mods);
+        owner->m_dispatcher->dispatch(event);
     }
 }
 
 void Window::mouseButtonCallback(GLFWwindow* window, int button, int action, int mods)
 {
     Window* owner = static_cast<Window*>(glfwGetWindowUserPointer(window));
-    if (owner) {
-        owner->m_mouse.onButtonEvent(button, action, mods);
+    if (!owner || !owner->m_dispatcher) {
+        return;
+    }
+
+    double x = 0.0;
+    double y = 0.0;
+    glfwGetCursorPos(window, &x, &y);
+
+    if (action == GLFW_PRESS) {
+        MouseButtonPressEvent event(button, mods, x, y);
+        owner->m_dispatcher->dispatch(event);
+    } else if (action == GLFW_RELEASE) {
+        MouseButtonReleaseEvent event(button, mods, x, y);
+        owner->m_dispatcher->dispatch(event);
     }
 }
 
 void Window::cursorPosCallback(GLFWwindow* window, double x, double y)
 {
     Window* owner = static_cast<Window*>(glfwGetWindowUserPointer(window));
-    if (owner) {
-        owner->m_mouse.onCursorPosition(x, y);
+    if (!owner || !owner->m_dispatcher) {
+        return;
     }
+
+    MouseMoveEvent event(x, y);
+    owner->m_dispatcher->dispatch(event);
 }
 
 void Window::scrollCallback(GLFWwindow* window, double xOffset, double yOffset)
 {
     Window* owner = static_cast<Window*>(glfwGetWindowUserPointer(window));
-    if (owner) {
-        owner->m_mouse.onScroll(xOffset, yOffset);
+    if (!owner || !owner->m_dispatcher) {
+        return;
     }
+
+    MouseScrollEvent event(xOffset, yOffset);
+    owner->m_dispatcher->dispatch(event);
 }
 
-} // namespace vkapp
+} // namespace vkapp::Core

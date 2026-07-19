@@ -1,15 +1,16 @@
 #pragma once
 
-#include <GLFW/glfw3.h>
+#include "../Core/Event.h"
+#include "../Core/EventDispatcher.h"
 
 #include <array>
 
-namespace vkapp {
+namespace vkapp::Input {
 
 class Keyboard {
 public:
     void beginFrame();
-    void onKeyEvent(int key, int scancode, int action, int mods);
+    void registerListeners(Core::EventDispatcher& dispatcher);
 
     bool isKeyDown(int key) const;
     bool isKeyUp(int key) const;
@@ -17,9 +18,11 @@ public:
     bool wasKeyReleased(int key) const;
 
 private:
+    bool onEvent(const Core::Event& event);
+
     static constexpr int KeyCount = 512;
     std::array<bool, KeyCount> m_current{};
     std::array<bool, KeyCount> m_previous{};
 };
 
-} // namespace vkapp
+} // namespace vkapp::Input
