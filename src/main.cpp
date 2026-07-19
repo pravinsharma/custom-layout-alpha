@@ -1,6 +1,7 @@
 #include "Core/Window.h"
 #include "Layout/FlexLayoutEngine.h"
 #include "Layout/LayoutDumper.h"
+#include "Layout/FlexTests.h"
 #include "Graphics/RenderCommandBuilder.h"
 #include "System/Console.h"
 
@@ -9,6 +10,16 @@
 int main()
 {
     try {
+        std::cout << "=== Flex Layout Tests ===\n\n";
+        int testResult = vkapp::Layout::Test::runAllTests();
+
+        if (testResult != 0) {
+            std::cerr << "\nSome tests failed.\n";
+            return EXIT_FAILURE;
+        }
+
+        std::cout << "\nAll tests passed.\n";
+
         vkapp::Core::EventDispatcher dispatcher;
         vkapp::Core::Window window({
             .width = 800,
@@ -53,7 +64,7 @@ int main()
 
         auto commands = vkapp::Graphics::buildRenderTree(root);
 
-        std::cout << "Computed layout:\n";
+        std::cout << "\nComputed layout:\n";
         for (const auto& cmd : commands) {
             std::cout << "  " << cmd.rect.x << ", " << cmd.rect.y << " "
                       << cmd.rect.width << "x" << cmd.rect.height << "\n";

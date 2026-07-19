@@ -20,10 +20,10 @@ class LayoutDumper {
 public:
     static std::string dump(const LayoutNode& node, const LayoutDumpOptions& options = {});
     static std::string dumpTree(const LayoutNode& root, const LayoutDumpOptions& options = {});
+    static std::string detectIssues(const LayoutNode& node);
 
 private:
     static std::string dumpNode(const LayoutNode& node, int depth, const LayoutDumpOptions& options);
-    static std::string detectIssues(const LayoutNode& node);
 };
 
 } // namespace vkapp::Layout

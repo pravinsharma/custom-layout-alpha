@@ -30,12 +30,21 @@ Goal: a complete, spec-faithful CSS flexbox layout system for versatile GUI deve
 - [x] `main.cpp` demo that computes layout and prints computed rects + debug dump
 
 ## Phase 3 — Validation
-- [ ] Unit-style tests or self-check demo cases:
-  - [ ] Row with flex-grow split
-  - [ ] Column reverse
-  - [ ] Wrap + gap
-  - [ ] Center alignment
-  - [ ] Min/max constraints
+- [x] Validation harness in `src/Layout/FlexTests.h/.cpp` using `LayoutDumper` output to assert pass/fail
+- [x] Each test case:
+  - [x] Builds a `LayoutNode` tree
+  - [x] Runs `FlexLayoutEngine::computeLayout`
+  - [x] Dumps layout with `LayoutDumper`
+  - [x] Asserts expected rects, order, and no issues
+  - [x] Prints clear PASS/FAIL with dump on failure
+- [x] Test cases implemented:
+  - [x] Row with flex-grow split (1:2:1) — PASS
+  - [ ] Column reverse — FAIL (engine needs reverse direction fix)
+  - [ ] Wrap + gap — FAIL (wrap logic incomplete)
+  - [ ] Center alignment — FAIL (justify center incomplete)
+  - [x] Min/max constraints — PASS
+  - [x] Box bleed / negative content area — PASS
+  - [x] Zero-size child handling — PASS
 - [ ] Compare computed outputs against expected CSS flexbox behavior
 
 ## Phase 4 — Future (out of scope for now)

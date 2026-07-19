@@ -29,6 +29,7 @@ add_executable(${PROJECT_NAME}
     src/System/Console.cpp
     src/Layout/FlexLayoutEngine.cpp
     src/Layout/LayoutDumper.cpp
+    src/Layout/FlexTests.cpp
     src/Graphics/RenderCommandBuilder.cpp
 )
 
