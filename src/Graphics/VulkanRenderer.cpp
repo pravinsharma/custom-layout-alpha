@@ -3,6 +3,7 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
+#include <cstring>
 #include <fstream>
 #include <iostream>
 #include <stdexcept>
@@ -79,18 +80,6 @@ void VulkanRenderer::shutdown()
 {
     waitIdle();
 
-    for (auto& frame : m_frames) {
-        vkDestroySemaphore(m_device, frame.renderFinishedSemaphore, nullptr);
-        vkDestroySemaphore(m_device, frame.imageAvailableSemaphore, nullptr);
-        vkDestroyFence(m_device, frame.inFlightFence, nullptr);
-    }
-    m_frames.clear();
-
-    if (m_commandPool != VK_NULL_HANDLE) {
-        vkDestroyCommandPool(m_device, m_commandPool, nullptr);
-        m_commandPool = VK_NULL_HANDLE;
-    }
-
     if (m_vertexBuffer != VK_NULL_HANDLE) {
         vkDestroyBuffer(m_device, m_vertexBuffer, nullptr);
         vkFreeMemory(m_device, m_vertexBufferMemory, nullptr);
@@ -98,7 +87,42 @@ void VulkanRenderer::shutdown()
         m_vertexBufferMemory = VK_NULL_HANDLE;
     }
 
+    for (auto fence : m_inFlightFences) {
+        vkDestroyFence(m_device, fence, nullptr);
+    }
+    m_inFlightFences.clear();
+
+    for (auto semaphore : m_renderFinishedSemaphores) {
+        vkDestroySemaphore(m_device, semaphore, nullptr);
+    }
+    m_renderFinishedSemaphores.clear();
+
+    for (auto semaphore : m_imageAvailableSemaphores) {
+        vkDestroySemaphore(m_device, semaphore, nullptr);
+    }
+    m_imageAvailableSemaphores.clear();
+
+    if (m_commandPool != VK_NULL_HANDLE) {
+        vkDestroyCommandPool(m_device, m_commandPool, nullptr);
+        m_commandPool = VK_NULL_HANDLE;
+    }
+
     cleanupSwapchain();
+
+    if (m_pipeline != VK_NULL_HANDLE) {
+        vkDestroyPipeline(m_device, m_pipeline, nullptr);
+        m_pipeline = VK_NULL_HANDLE;
+    }
+
+    if (m_pipelineLayout != VK_NULL_HANDLE) {
+        vkDestroyPipelineLayout(m_device, m_pipelineLayout, nullptr);
+        m_pipelineLayout = VK_NULL_HANDLE;
+    }
+
+    if (m_renderPass != VK_NULL_HANDLE) {
+        vkDestroyRenderPass(m_device, m_renderPass, nullptr);
+        m_renderPass = VK_NULL_HANDLE;
+    }
 
     if (m_surface != VK_NULL_HANDLE) {
         vkDestroySurfaceKHR(m_instance, m_surface, nullptr);
@@ -123,12 +147,12 @@ void VulkanRenderer::render(const RenderCommandList& commands)
         m_needsResize = false;
     }
 
-    vkWaitForFences(m_device, 1, &m_frames[m_currentFrame].inFlightFence, VK_TRUE, UINT64_MAX);
-    vkResetFences(m_device, 1, &m_frames[m_currentFrame].inFlightFence);
+    vkWaitForFences(m_device, 1, &m_inFlightFences[m_currentFrame], VK_TRUE, UINT64_MAX);
+    vkResetFences(m_device, 1, &m_inFlightFences[m_currentFrame]);
 
     uint32_t imageIndex = 0;
     VkResult result = vkAcquireNextImageKHR(m_device, m_swapchain, UINT64_MAX,
-                                             m_frames[m_currentFrame].imageAvailableSemaphore,
+                                             m_imageAvailableSemaphores[m_currentFrame],
                                              VK_NULL_HANDLE, &imageIndex);
 
     if (result == VK_ERROR_OUT_OF_DATE_KHR) {
@@ -176,13 +200,12 @@ void VulkanRenderer::render(const RenderCommandList& commands)
     for (const auto& cmd : commands) {
         if (cmd.type != RenderCommand::Type::Rect) continue;
 
+        std::cout << "  DRAW rect x=" << cmd.rect.x << " y=" << cmd.rect.y << " w=" << cmd.rect.width << " h=" << cmd.rect.height << "\n";
+
         float x = cmd.rect.x;
         float y = cmd.rect.y;
         float w = cmd.rect.width;
         float h = cmd.rect.height;
-
-        float halfW = w / 2.0f;
-        float halfH = h / 2.0f;
 
         float minX = x;
         float minY = y;
@@ -194,13 +217,15 @@ void VulkanRenderer::render(const RenderCommandList& commands)
         float top = 1.0f - (minY / static_cast<float>(m_extent.height)) * 2.0f;
         float bottom = 1.0f - (maxY / static_cast<float>(m_extent.height)) * 2.0f;
 
-        float transform[9] = {
-            (right - left) / 2.0f, 0.0f, 0.0f,
-            0.0f, (bottom - top) / 2.0f, 0.0f,
-            (left + right) / 2.0f, (top + bottom) / 2.0f, 1.0f
+        float pushData[20] = {
+            (right - left), 0.0f, 0.0f, 0.0f,
+            0.0f, (bottom - top), 0.0f, 0.0f,
+            0.0f, 0.0f, 1.0f, 0.0f,
+            (left + right) / 2.0f, (top + bottom) / 2.0f, 0.0f, 1.0f,
+            cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a
         };
 
-        vkCmdPushConstants(m_commandBuffers[imageIndex], m_pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(transform), transform);
+        vkCmdPushConstants(m_commandBuffers[imageIndex], m_pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(pushData), pushData);
         vkCmdDraw(m_commandBuffers[imageIndex], 6, 1, 0, 0);
     }
 
@@ -213,7 +238,7 @@ void VulkanRenderer::render(const RenderCommandList& commands)
     VkSubmitInfo submitInfo = {};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
-    VkSemaphore waitSemaphores[] = {m_frames[m_currentFrame].imageAvailableSemaphore};
+    VkSemaphore waitSemaphores[] = {m_imageAvailableSemaphores[m_currentFrame]};
     VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
     submitInfo.waitSemaphoreCount = 1;
     submitInfo.pWaitSemaphores = waitSemaphores;
@@ -221,11 +246,11 @@ void VulkanRenderer::render(const RenderCommandList& commands)
     submitInfo.commandBufferCount = 1;
     submitInfo.pCommandBuffers = &m_commandBuffers[imageIndex];
 
-    VkSemaphore signalSemaphores[] = {m_frames[m_currentFrame].renderFinishedSemaphore};
+    VkSemaphore signalSemaphores[] = {m_renderFinishedSemaphores[m_currentFrame]};
     submitInfo.signalSemaphoreCount = 1;
     submitInfo.pSignalSemaphores = signalSemaphores;
 
-    vkQueueSubmit(m_graphicsQueue, 1, &submitInfo, m_frames[m_currentFrame].inFlightFence);
+    vkQueueSubmit(m_graphicsQueue, 1, &submitInfo, m_inFlightFences[m_currentFrame]);
 
     VkPresentInfoKHR presentInfo = {};
     presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
@@ -294,7 +319,7 @@ bool VulkanRenderer::pickPhysicalDevice()
     vkEnumeratePhysicalDevices(m_instance, &deviceCount, devices.data());
 
     for (const auto& device : devices) {
-        if (true) { // Simplified: pick first device
+        if (true) {
             m_physicalDevice = device;
             break;
         }
@@ -494,7 +519,7 @@ bool VulkanRenderer::createPipeline()
     VkPushConstantRange pushConstantRange = {};
     pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
     pushConstantRange.offset = 0;
-    pushConstantRange.size = sizeof(float) * 9;
+    pushConstantRange.size = sizeof(float) * 20;
 
     VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -508,11 +533,9 @@ bool VulkanRenderer::createPipeline()
 
     VkShaderModuleCreateInfo vertShaderInfo = {};
     vertShaderInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-    // We'll load from file later
     VkShaderModule vertShaderModule = VK_NULL_HANDLE;
     VkShaderModule fragShaderModule = VK_NULL_HANDLE;
 
-    // Load shaders from files
     std::ifstream vertFile(std::string(SHADER_BINARY_DIR) + "/quad.vert.spv", std::ios::binary);
     std::ifstream fragFile(std::string(SHADER_BINARY_DIR) + "/quad.frag.spv", std::ios::binary);
 
@@ -720,9 +743,11 @@ bool VulkanRenderer::allocateCommandBuffers()
 
 bool VulkanRenderer::createSyncObjects()
 {
-    m_frames.resize(MAX_FRAMES_IN_FLIGHT);
+    m_imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
+    m_renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
+    m_inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
 
-    for (auto& frame : m_frames) {
+    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
         VkSemaphoreCreateInfo semaphoreInfo = {};
         semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 
@@ -730,9 +755,9 @@ bool VulkanRenderer::createSyncObjects()
         fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
         fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
-        if (vkCreateSemaphore(m_device, &semaphoreInfo, nullptr, &frame.imageAvailableSemaphore) != VK_SUCCESS ||
-            vkCreateSemaphore(m_device, &semaphoreInfo, nullptr, &frame.renderFinishedSemaphore) != VK_SUCCESS ||
-            vkCreateFence(m_device, &fenceInfo, nullptr, &frame.inFlightFence) != VK_SUCCESS) {
+        if (vkCreateSemaphore(m_device, &semaphoreInfo, nullptr, &m_imageAvailableSemaphores[i]) != VK_SUCCESS ||
+            vkCreateSemaphore(m_device, &semaphoreInfo, nullptr, &m_renderFinishedSemaphores[i]) != VK_SUCCESS ||
+            vkCreateFence(m_device, &fenceInfo, nullptr, &m_inFlightFences[i]) != VK_SUCCESS) {
             std::cerr << "Failed to create sync objects\n";
             return false;
         }

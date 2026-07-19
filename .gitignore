@@ -36,15 +36,3 @@ vcpkg_installed/
 
 # Vulkan shader intermediates
 *.spv
-*.hlsl
-*.comp
-*.frag
-*.vert
-*.geom
-*.tesc
-*.tese
-*.rgen
-*.rchit
-*.rahit
-*.rmiss
-*.rcall

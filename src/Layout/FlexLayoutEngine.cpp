@@ -261,15 +261,6 @@ void FlexLayoutEngine::resolveFlexContainer(LayoutNode& node, float availableWid
 
         float freeSpaceMain = mainAxisSize - gapMain * static_cast<float>(std::max(0, static_cast<int>(line.size()) - 1)) - totalMainBasis;
 
-        float justifyOffset = resolveJustifyOffset(node.flex.justify, freeSpaceMain, static_cast<int>(line.size()), gapMain);
-        float itemSpacing = resolveItemSpacing(node.flex.justify, freeSpaceMain, static_cast<int>(line.size()), gapMain);
-
-        float currentMain = justifyOffset;
-
-        if (reverse) {
-            currentMain = mainAxisSize - justifyOffset;
-        }
-
         std::vector<float> childMainSizes;
         childMainSizes.reserve(line.size());
 
@@ -290,6 +281,22 @@ void FlexLayoutEngine::resolveFlexContainer(LayoutNode& node, float availableWid
             }
 
             childMainSizes.push_back(childMainSize);
+        }
+
+        float totalChildMainSize = 0.0f;
+        for (float size : childMainSizes) {
+            totalChildMainSize += size;
+        }
+
+        float remainingSpace = mainAxisSize - gapMain * static_cast<float>(std::max(0, static_cast<int>(line.size()) - 1)) - totalChildMainSize;
+
+        float justifyOffset = resolveJustifyOffset(node.flex.justify, remainingSpace, static_cast<int>(line.size()), gapMain);
+        float itemSpacing = resolveItemSpacing(node.flex.justify, remainingSpace, static_cast<int>(line.size()), gapMain);
+
+        float currentMain = justifyOffset;
+
+        if (reverse) {
+            currentMain = mainAxisSize - justifyOffset;
         }
 
         for (size_t i = 0; i < line.size(); ++i) {
@@ -338,10 +345,12 @@ void FlexLayoutEngine::resolveFlexContainer(LayoutNode& node, float availableWid
                          row ? childMainSize : childCrossSize,
                          row ? childCrossSize : childMainSize);
 
-            if (reverse) {
-                currentMain -= childMainSize + gapMain + itemSpacing;
-            } else {
-                currentMain += childMainSize + gapMain + itemSpacing;
+            if (i + 1 < line.size()) {
+                if (reverse) {
+                    currentMain -= childMainSize + gapMain + itemSpacing;
+                } else {
+                    currentMain += childMainSize + gapMain + itemSpacing;
+                }
             }
         }
 

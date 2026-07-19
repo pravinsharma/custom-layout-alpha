@@ -27,28 +27,11 @@ public:
     void render(const RenderCommandList& commands);
     void waitIdle() const;
 
-    VkInstance getInstance() const { return m_instance; }
-    VkDevice getDevice() const { return m_device; }
-    VkPhysicalDevice getPhysicalDevice() const { return m_physicalDevice; }
-    VkQueue getGraphicsQueue() const { return m_graphicsQueue; }
-    uint32_t getGraphicsQueueFamily() const { return m_graphicsQueueFamily; }
-    VkSurfaceKHR getSurface() const { return m_surface; }
-    VkRenderPass getRenderPass() const { return m_renderPass; }
-    VkPipeline getPipeline() const { return m_pipeline; }
-    VkPipelineLayout getPipelineLayout() const { return m_pipelineLayout; }
-    VkCommandPool getCommandPool() const { return m_commandPool; }
-    const std::vector<VkCommandBuffer>& getCommandBuffers() const { return m_commandBuffers; }
     VkExtent2D getExtent() const { return m_extent; }
     bool needsResize() const { return m_needsResize; }
     void resetResize() { m_needsResize = false; }
 
 private:
-    struct FrameData {
-        VkSemaphore imageAvailableSemaphore;
-        VkSemaphore renderFinishedSemaphore;
-        VkFence inFlightFence;
-    };
-
     bool createInstance();
     bool pickPhysicalDevice();
     bool createLogicalDevice();
@@ -84,8 +67,11 @@ private:
     std::vector<VkFramebuffer> m_framebuffers;
     VkCommandPool m_commandPool;
     std::vector<VkCommandBuffer> m_commandBuffers;
-    std::vector<FrameData> m_frames;
+    std::vector<VkSemaphore> m_imageAvailableSemaphores;
+    std::vector<VkSemaphore> m_renderFinishedSemaphores;
+    std::vector<VkFence> m_inFlightFences;
     size_t m_currentFrame;
+
     VkBuffer m_vertexBuffer;
     VkDeviceMemory m_vertexBufferMemory;
 
