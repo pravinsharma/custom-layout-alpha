@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>07-flex-grow-shrink</title>
+<style>
+  body { margin: 20px; font-family: sans-serif; background: #f0f0f0; }
+  .container {
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+    width: 600px;
+    height: 200px;
+    background: #ddd;
+  }
+  .item {
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 16px;
+    height: 80px;
+  }
+  .item-1 { flex: 1 1 0; background: #4a90d9; }
+  .item-2 { flex: 0 0 120px; background: #d94a4a; }
+  .item-3 { flex: 0 1 200px; background: #4ad97a; }
+</style>
+</head>
+<body>
+<h2>07-flex-grow-shrink</h2>
+<p>Item 1 grows to fill remaining space (<code>flex-grow: 1</code>), Item 2 is fixed at 120px, Item 3 can shrink from 200px basis.</p>
+<div class="container">
+  <div class="item item-1">Grow</div>
+  <div class="item item-2">Fixed</div>
+  <div class="item item-3">Shrink</div>
+</div>
+</body>
+</html>

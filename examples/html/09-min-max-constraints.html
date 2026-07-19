@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>09-min-max-constraints</title>
+<style>
+  body { margin: 20px; font-family: sans-serif; background: #f0f0f0; }
+  .container {
+    display: flex;
+    flex-direction: row;
+    gap: 12px;
+    align-items: stretch;
+    width: 500px;
+    height: 300px;
+    background: #ddd;
+  }
+  .item {
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 14px;
+    text-align: center;
+  }
+  .item-1 {
+    min-width: 80px; max-width: 120px;
+    min-height: 60px; max-height: 120px;
+    width: 100px; height: 100px;
+    background: #4a90d9;
+  }
+  .item-2 {
+    flex: 1 1 auto;
+    min-width: 140px; max-width: 300px;
+    min-height: 80px; max-height: 200px;
+    height: 140px;
+    background: #d94a6a;
+  }
+  .item-3 {
+    min-width: 60px; max-width: 100px;
+    min-height: 40px; max-height: 100px;
+    width: 80px; height: 80px;
+    background: #4ad9a0;
+  }
+</style>
+</head>
+<body>
+<h2>09-min-max-constraints</h2>
+<p>Items with <code>min-width/max-width/min-height/max-height</code> constraints. Resize the window to see them clamp.</p>
+<div class="container">
+  <div class="item item-1">80-120px<br>60-120px</div>
+  <div class="item item-2">140-300px<br>80-200px</div>
+  <div class="item item-3">60-100px<br>40-100px</div>
+</div>
+</body>
+</html>

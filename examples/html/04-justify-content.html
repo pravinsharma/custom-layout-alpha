@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>04-justify-content</title>
+<style>
+  body { margin: 20px; font-family: sans-serif; background: #f0f0f0; }
+  .container {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    width: 600px;
+    height: 200px;
+    background: #ddd;
+  }
+  .item {
+    background: #d9a04a;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 18px;
+    width: 80px;
+    height: 60px;
+  }
+</style>
+</head>
+<body>
+<h2>04-justify-content</h2>
+<p>Three items with <code>justify-content: space-between</code> distributes free space between items.</p>
+<div class="container">
+  <div class="item">A</div>
+  <div class="item">B</div>
+  <div class="item">C</div>
+</div>
+</body>
+</html>

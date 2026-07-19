@@ -256,7 +256,17 @@ void FlexLayoutEngine::resolveFlexContainer(LayoutNode& node, float availableWid
         float totalMainBasis = 0.0f;
         for (size_t idx : line) {
             auto* child = node.children[idx];
-            totalMainBasis += child->flex.flexBasis;
+            float basis = child->flex.flexBasis;
+            if (row) {
+                if (!basis && child->hasExplicitWidth) {
+                    basis = child->explicitWidth;
+                }
+            } else {
+                if (!basis && child->hasExplicitHeight) {
+                    basis = child->explicitHeight;
+                }
+            }
+            totalMainBasis += basis;
         }
 
         float freeSpaceMain = mainAxisSize - gapMain * static_cast<float>(std::max(0, static_cast<int>(line.size()) - 1)) - totalMainBasis;
@@ -267,6 +277,16 @@ void FlexLayoutEngine::resolveFlexContainer(LayoutNode& node, float availableWid
         for (size_t idx : line) {
             auto* child = node.children[idx];
             float childMainSize = child->flex.flexBasis;
+
+            if (row) {
+                if (!child->flex.flexBasis && child->hasExplicitWidth) {
+                    childMainSize = child->explicitWidth;
+                }
+            } else {
+                if (!child->flex.flexBasis && child->hasExplicitHeight) {
+                    childMainSize = child->explicitHeight;
+                }
+            }
 
             if (freeSpaceMain > 0 && flexGrowTotal > 0 && child->flex.flexGrow > 0) {
                 childMainSize += (freeSpaceMain * (child->flex.flexGrow / flexGrowTotal));
@@ -344,6 +364,12 @@ void FlexLayoutEngine::resolveFlexContainer(LayoutNode& node, float availableWid
             positionNode(*child, x, y,
                          row ? childMainSize : childCrossSize,
                          row ? childCrossSize : childMainSize);
+
+            if (node.name == "features") {
+                std::cout << "  [POS " << child->name << "] x=" << x << " y=" << y
+                          << " w=" << (row ? childMainSize : childCrossSize)
+                          << " h=" << (row ? childCrossSize : childMainSize) << "\n";
+            }
 
             if (i + 1 < line.size()) {
                 if (reverse) {

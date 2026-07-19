@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>02-basic-column</title>
+<style>
+  body { margin: 20px; font-family: sans-serif; background: #f0f0f0; }
+  .container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
+    width: 300px;
+    height: 400px;
+    background: #ddd;
+  }
+  .item {
+    background: #d94a6a;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 18px;
+    height: 80px;
+  }
+</style>
+</head>
+<body>
+<h2>02-basic-column</h2>
+<p>Three items in a flex column with <code>gap: 12px</code>.</p>
+<div class="container">
+  <div class="item">Item 1</div>
+  <div class="item">Item 2</div>
+  <div class="item">Item 3</div>
+</div>
+</body>
+</html>

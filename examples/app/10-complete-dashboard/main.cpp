@@ -1,34 +1,23 @@
 #include "Core/Window.h"
 #include "Layout/FlexLayoutEngine.h"
 #include "Layout/LayoutDumper.h"
-#include "Layout/FlexTests.h"
 #include "Graphics/RenderCommandBuilder.h"
 #include "Graphics/VulkanRenderer.h"
-#include "System/Console.h"
 
 #include <iostream>
 #include <string>
+#include <vector>
 
 using namespace vkapp::Layout;
 
 int main()
 {
     try {
-        std::cout << "=== Flex Layout Tests ===\n\n";
-        int testResult = vkapp::Layout::Test::runAllTests();
-
-        if (testResult != 0) {
-            std::cerr << "\nSome tests failed.\n";
-            return EXIT_FAILURE;
-        }
-
-        std::cout << "\nAll tests passed.\n";
-
         vkapp::Core::EventDispatcher dispatcher;
         vkapp::Core::Window window({
-            .width = 1200,
-            .height = 800,
-            .title = "Flex Layout Complete Demo",
+            .width = 800,
+            .height = 600,
+            .title = "Flex Example: 10-complete-dashboard",
             .resizable = true
         });
 
@@ -40,10 +29,10 @@ int main()
         root.flex.parseStyle(R"(
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 0px;
         )");
-        root.explicitWidth = 1200.0f;
-        root.explicitHeight = 800.0f;
+        root.explicitWidth = 800.0f;
+        root.explicitHeight = 600.0f;
         root.hasExplicitWidth = true;
         root.hasExplicitHeight = true;
         root.isFlexContainer = true;
@@ -61,11 +50,7 @@ int main()
         header.isFlexContainer = true;
 
         LayoutNode logo{"logo"};
-        logo.flex.parseStyle(R"(
-            flex-grow: 0;
-            min-width: 100px;
-            max-width: 160px;
-        )");
+        logo.flex.parseStyle("flex-grow: 0; min-width: 100px; max-width: 160px;");
         logo.explicitHeight = 36.0f;
         logo.hasExplicitHeight = true;
 
@@ -84,96 +69,76 @@ int main()
         nav.isFlexContainer = true;
 
         LayoutNode navItem1{"nav-item-1"};
-        navItem1.flex.parseStyle(R"(
-            flex-grow: 0;
-            min-width: 50px;
-            max-width: 100px;
-        )");
+        navItem1.flex.parseStyle("flex-grow: 0; min-width: 50px; max-width: 100px;");
         navItem1.explicitHeight = 32.0f;
         navItem1.hasExplicitHeight = true;
 
         LayoutNode navItem2{"nav-item-2"};
-        navItem2.flex.parseStyle(R"(
-            flex-grow: 0;
-            min-width: 50px;
-            max-width: 100px;
-        )");
+        navItem2.flex.parseStyle("flex-grow: 0; min-width: 50px; max-width: 100px;");
         navItem2.explicitHeight = 32.0f;
         navItem2.hasExplicitHeight = true;
 
-        LayoutNode navItem3{"nav-item-3"};
-        navItem3.flex.parseStyle(R"(
-            flex-grow: 0;
-            min-width: 50px;
-            max-width: 100px;
-        )");
-        navItem3.explicitHeight = 32.0f;
-        navItem3.hasExplicitHeight = true;
-
         nav.addChild(&navItem1);
         nav.addChild(&navItem2);
-        nav.addChild(&navItem3);
         header.addChild(&logo);
         header.addChild(&nav);
 
-        LayoutNode hero{"hero"};
-        hero.flex.parseStyle(R"(
+        LayoutNode body{"body"};
+        body.flex.parseStyle(R"(
             display: flex;
             flex-direction: row;
-            justify-content: center;
-            align-items: center;
-            gap: 24px;
+            gap: 16px;
         )");
-        hero.flex.flexGrow = 1.0f;
-        hero.isFlexContainer = true;
+        body.flex.flexGrow = 1.0f;
+        body.isFlexContainer = true;
 
-        LayoutNode heroText{"hero-text"};
-        heroText.flex.parseStyle(R"(
-            flex-grow: 0;
-            min-width: 200px;
-            max-width: 400px;
+        LayoutNode sidebar{"sidebar"};
+        sidebar.flex.parseStyle(R"(
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
         )");
-        heroText.explicitHeight = 80.0f;
-        heroText.hasExplicitHeight = true;
+        sidebar.explicitWidth = 160.0f;
+        sidebar.hasExplicitWidth = true;
+        sidebar.isFlexContainer = true;
 
-        LayoutNode heroButton{"hero-button"};
-        heroButton.flex.parseStyle(R"(
-            flex-grow: 0;
-            min-width: 120px;
-            max-width: 200px;
-        )");
-        heroButton.explicitHeight = 44.0f;
-        heroButton.hasExplicitHeight = true;
+        LayoutNode sideItem1{"side-item-1"};
+        sideItem1.flex.parseStyle("flex-grow: 0;");
+        sideItem1.explicitHeight = 80.0f;
+        sideItem1.hasExplicitHeight = true;
 
-        hero.addChild(&heroText);
-        hero.addChild(&heroButton);
+        LayoutNode sideItem2{"side-item-2"};
+        sideItem2.flex.parseStyle("flex-grow: 0;");
+        sideItem2.explicitHeight = 80.0f;
+        sideItem2.hasExplicitHeight = true;
 
-        LayoutNode features{"features"};
-        features.flex.parseStyle(R"(
+        sidebar.addChild(&sideItem1);
+        sidebar.addChild(&sideItem2);
+
+        LayoutNode main{"main"};
+        main.flex.parseStyle(R"(
             display: flex;
             flex-direction: row;
             flex-wrap: wrap;
-            justify-content: center;
-            align-items: stretch;
+            gap: 12px;
             align-content: flex-start;
-            gap: 16px;
         )");
-        features.flex.flexGrow = 1.0f;
-        features.isFlexContainer = true;
+        main.flex.flexGrow = 1.0f;
+        main.isFlexContainer = true;
 
-        for (int i = 0; i < 6; ++i) {
-            LayoutNode feature{"feature-" + std::to_string(i + 1)};
-            feature.flex.parseStyle(R"(
-                flex-grow: 1;
-                flex-basis: 160px;
-                flex-shrink: 1;
-                min-width: 140px;
-                max-width: 220px;
-            )");
-            feature.explicitHeight = 100.0f;
-            feature.hasExplicitHeight = true;
-            features.addChild(&feature);
+        std::vector<LayoutNode> cards;
+        cards.reserve(4);
+        for (int i = 0; i < 4; ++i) {
+            cards.emplace_back("card-" + std::to_string(i + 1));
+            auto& card = cards.back();
+            card.flex.parseStyle("flex-grow: 1; flex-basis: 120px;");
+            card.explicitHeight = 100.0f;
+            card.hasExplicitHeight = true;
+            main.addChild(&card);
         }
+
+        body.addChild(&sidebar);
+        body.addChild(&main);
 
         LayoutNode footer{"footer"};
         footer.flex.parseStyle(R"(
@@ -189,20 +154,12 @@ int main()
         footer.isFlexContainer = true;
 
         LayoutNode footerLink1{"footer-link-1"};
-        footerLink1.flex.parseStyle(R"(
-            flex-grow: 0;
-            min-width: 40px;
-            max-width: 120px;
-        )");
+        footerLink1.flex.parseStyle("flex-grow: 0;");
         footerLink1.explicitHeight = 24.0f;
         footerLink1.hasExplicitHeight = true;
 
         LayoutNode footerLink2{"footer-link-2"};
-        footerLink2.flex.parseStyle(R"(
-            flex-grow: 0;
-            min-width: 40px;
-            max-width: 120px;
-        )");
+        footerLink2.flex.parseStyle("flex-grow: 0;");
         footerLink2.explicitHeight = 24.0f;
         footerLink2.hasExplicitHeight = true;
 
@@ -210,16 +167,15 @@ int main()
         footer.addChild(&footerLink2);
 
         root.addChild(&header);
-        root.addChild(&hero);
-        root.addChild(&features);
+        root.addChild(&body);
         root.addChild(&footer);
 
         vkapp::Layout::FlexLayoutEngine engine;
-        engine.computeLayout(root, 1200.0f, 800.0f);
+        engine.computeLayout(root, 800.0f, 600.0f);
 
         auto commands = vkapp::Graphics::buildRenderTree(root);
 
-        std::cout << "\nComputed layout:\n";
+        std::cout << "Computed layout:\n";
         for (const auto& cmd : commands) {
             std::cout << "  " << cmd.rect.x << ", " << cmd.rect.y << " "
                       << cmd.rect.width << "x" << cmd.rect.height << "\n";

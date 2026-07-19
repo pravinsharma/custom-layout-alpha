@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>10-complete-dashboard</title>
+<style>
+  body { margin: 20px; font-family: sans-serif; background: #f0f0f0; }
+  .dashboard {
+    display: flex;
+    flex-direction: column;
+    width: 800px;
+    height: 600px;
+    background: #fff;
+    border: 1px solid #ccc;
+  }
+  .header {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    height: 56px;
+    background: #2c3e50;
+    color: white;
+    padding: 0 16px;
+  }
+  .logo { min-width: 100px; max-width: 160px; font-weight: bold; }
+  .nav {
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 12px;
+    min-width: 200px;
+    max-width: 360px;
+  }
+  .nav-item { min-width: 50px; max-width: 100px; font-size: 14px; }
+  .body {
+    display: flex;
+    flex-direction: row;
+    gap: 16px;
+    flex: 1;
+    padding: 16px;
+    background: #ecf0f1;
+  }
+  .sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 160px;
+  }
+  .side-item {
+    height: 80px;
+    background: #3498db;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+  }
+  .main {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-content: flex-start;
+    flex: 1;
+  }
+  .card {
+    flex: 1 1 120px;
+    height: 100px;
+    background: #2ecc71;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+  }
+  .footer {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    gap: 24px;
+    height: 48px;
+    background: #2c3e50;
+    color: white;
+  }
+</style>
+</head>
+<body>
+<h2>10-complete-dashboard</h2>
+<p>A dashboard layout combining header, sidebar, main content area, and footer using flex properties.</p>
+<div class="dashboard">
+  <div class="header">
+    <div class="logo">LOGO</div>
+    <div class="nav">
+      <div class="nav-item">Home</div>
+      <div class="nav-item">About</div>
+    </div>
+  </div>
+  <div class="body">
+    <div class="sidebar">
+      <div class="side-item">Menu 1</div>
+      <div class="side-item">Menu 2</div>
+    </div>
+    <div class="main">
+      <div class="card">Card 1</div>
+      <div class="card">Card 2</div>
+      <div class="card">Card 3</div>
+      <div class="card">Card 4</div>
+    </div>
+  </div>
+  <div class="footer">
+    <div>Link 1</div>
+    <div>Link 2</div>
+  </div>
+</div>
+</body>
+</html>

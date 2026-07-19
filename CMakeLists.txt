@@ -21,21 +21,6 @@ endif()
 
 find_package(glfw3 CONFIG REQUIRED)
 
-add_executable(${PROJECT_NAME}
-    src/main.cpp
-    src/Core/Window.cpp
-    src/Core/EventDispatcher.cpp
-    src/Input/Keyboard.cpp
-    src/Input/Mouse.cpp
-    src/System/Console.cpp
-    src/Layout/FlexStyle.cpp
-    src/Layout/FlexLayoutEngine.cpp
-    src/Layout/LayoutDumper.cpp
-    src/Layout/FlexTests.cpp
-    src/Graphics/RenderCommandBuilder.cpp
-    src/Graphics/VulkanRenderer.cpp
-)
-
 set(SHADER_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/Graphics/shaders)
 set(SHADER_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/shaders)
 file(MAKE_DIRECTORY ${SHADER_BINARY_DIR})
@@ -54,8 +39,31 @@ add_custom_command(
 )
 
 add_custom_target(Shaders ALL DEPENDS ${VERT_SPV} ${FRAG_SPV})
+
+set(FLEX_APP_SOURCES
+    src/Core/Window.cpp
+    src/Core/EventDispatcher.cpp
+    src/Input/Keyboard.cpp
+    src/Input/Mouse.cpp
+    src/System/Console.cpp
+    src/Layout/FlexStyle.cpp
+    src/Layout/FlexLayoutEngine.cpp
+    src/Layout/LayoutDumper.cpp
+    src/Layout/FlexTests.cpp
+    src/Graphics/RenderCommandBuilder.cpp
+    src/Graphics/VulkanRenderer.cpp
+)
+
+add_library(flex_layout_lib STATIC ${FLEX_APP_SOURCES})
+target_include_directories(flex_layout_lib PUBLIC
+    ${Vulkan_INCLUDE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
+target_link_libraries(flex_layout_lib PUBLIC glfw ${Vulkan_LIBRARY})
+target_compile_definitions(flex_layout_lib PUBLIC SHADER_BINARY_DIR="${SHADER_BINARY_DIR}")
+
+add_executable(${PROJECT_NAME} src/main.cpp)
+target_link_libraries(${PROJECT_NAME} PRIVATE flex_layout_lib)
 add_dependencies(${PROJECT_NAME} Shaders)
 
-target_include_directories(${PROJECT_NAME} PRIVATE ${Vulkan_INCLUDE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/src)
-target_compile_definitions(${PROJECT_NAME} PRIVATE SHADER_BINARY_DIR="${SHADER_BINARY_DIR}")
-target_link_libraries(${PROJECT_NAME} PRIVATE glfw ${Vulkan_LIBRARY})
+add_subdirectory(examples)

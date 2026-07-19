@@ -147,6 +147,10 @@ void VulkanRenderer::render(const RenderCommandList& commands)
         m_needsResize = false;
     }
 
+    if (m_extent.width == 0 || m_extent.height == 0) {
+        return;
+    }
+
     vkWaitForFences(m_device, 1, &m_inFlightFences[m_currentFrame], VK_TRUE, UINT64_MAX);
     vkResetFences(m_device, 1, &m_inFlightFences[m_currentFrame]);
 
@@ -214,8 +218,8 @@ void VulkanRenderer::render(const RenderCommandList& commands)
 
         float left = (minX / static_cast<float>(m_extent.width)) * 2.0f - 1.0f;
         float right = (maxX / static_cast<float>(m_extent.width)) * 2.0f - 1.0f;
-        float top = 1.0f - (minY / static_cast<float>(m_extent.height)) * 2.0f;
-        float bottom = 1.0f - (maxY / static_cast<float>(m_extent.height)) * 2.0f;
+        float top = (minY / static_cast<float>(m_extent.height)) * 2.0f - 1.0f;
+        float bottom = (maxY / static_cast<float>(m_extent.height)) * 2.0f - 1.0f;
 
         float pushData[20] = {
             (right - left), 0.0f, 0.0f, 0.0f,
@@ -395,6 +399,13 @@ bool VulkanRenderer::createSwapchain()
     int width = 0;
     int height = 0;
     glfwGetFramebufferSize(m_window, &width, &height);
+
+    if (width == 0 || height == 0) {
+        m_extent.width = 0;
+        m_extent.height = 0;
+        return false;
+    }
+
     m_extent.width = static_cast<uint32_t>(width);
     m_extent.height = static_cast<uint32_t>(height);
 
@@ -788,9 +799,12 @@ void VulkanRenderer::recreateSwapchain()
 {
     int width = 0;
     int height = 0;
-    while (width == 0 || height == 0) {
-        glfwGetFramebufferSize(m_window, &width, &height);
-        glfwWaitEvents();
+    glfwGetFramebufferSize(m_window, &width, &height);
+
+    if (width == 0 || height == 0) {
+        m_extent.width = 0;
+        m_extent.height = 0;
+        return;
     }
 
     vkDeviceWaitIdle(m_device);

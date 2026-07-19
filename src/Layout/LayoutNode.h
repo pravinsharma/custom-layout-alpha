@@ -3,8 +3,10 @@
 #include "Rect.h"
 #include "BoxModel.h"
 #include "FlexStyle.h"
+#include "../Graphics/RenderCommand.h"
 
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -27,6 +29,8 @@ struct LayoutNode {
     bool isFlexContainer = false;
     uint32_t order = 0;
     float aspectRatio = 0.0f;
+
+    std::optional<Graphics::Color> color;
 
     LayoutNode* parent = nullptr;
 

@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>08-gap</title>
+<style>
+  body { margin: 20px; font-family: sans-serif; background: #f0f0f0; }
+  .container {
+    display: flex;
+    flex-direction: row;
+    gap: 16px;
+    align-items: stretch;
+    width: 400px;
+    height: 300px;
+    background: #ddd;
+  }
+  .col {
+    display: flex;
+    flex-direction: column;
+    gap-row: 10px;
+    gap-column: 4px;
+    width: 120px;
+    height: 200px;
+    background: #bbb;
+  }
+  .box {
+    width: 120px;
+    height: 200px;
+    background: #d9a04a;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+  }
+  .col-item {
+    background: #4ad9a0;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 14px;
+    height: 60px;
+  }
+</style>
+</head>
+<body>
+<h2>08-gap</h2>
+<p>Row gap of 16px between the column and box. Inside the column, <code>gap-row: 10px</code> and <code>gap-column: 4px</code>.</p>
+<div class="container">
+  <div class="col">
+    <div class="col-item">Col 1</div>
+    <div class="col-item">Col 2</div>
+    <div class="col-item">Col 3</div>
+  </div>
+  <div class="box">Box</div>
+</div>
+</body>
+</html>

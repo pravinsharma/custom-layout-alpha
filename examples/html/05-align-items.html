@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>05-align-items</title>
+<style>
+  body { margin: 20px; font-family: sans-serif; background: #f0f0f0; }
+  .container {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    width: 400px;
+    height: 300px;
+    background: #ddd;
+  }
+  .item {
+    background: #9b4ad9;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 18px;
+    width: 80px;
+  }
+  .item-1 { height: 100px; }
+  .item-2 { height: 180px; }
+  .item-3 { height: 60px; }
+</style>
+</head>
+<body>
+<h2>05-align-items</h2>
+<p>Items of different heights with <code>align-items: center</code> vertically centered in the cross axis.</p>
+<div class="container">
+  <div class="item item-1">100px</div>
+  <div class="item item-2">180px</div>
+  <div class="item item-3">60px</div>
+</div>
+</body>
+</html>
