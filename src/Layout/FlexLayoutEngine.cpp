@@ -173,8 +173,8 @@ void FlexLayoutEngine::resolveFlexContainer(LayoutNode& node, float availableWid
     const float mainAxisSize = resolveMainAxisSize(node);
     const float crossAxisSize = resolveCrossAxisSize(node);
 
-    const float gapMain = row ? node.flex.gapRow : node.flex.gapColumn;
-    const float gapCross = row ? node.flex.gapColumn : node.flex.gapRow;
+    const float gapMain = row ? node.flex.gapColumn : node.flex.gapRow;
+    const float gapCross = row ? node.flex.gapRow : node.flex.gapColumn;
 
     float flexGrowTotal = 0.0f;
     float flexShrinkTotal = 0.0f;
@@ -229,8 +229,19 @@ void FlexLayoutEngine::resolveFlexContainer(LayoutNode& node, float availableWid
     } else {
         lines.push_back(std::vector<size_t>(node.children.size()));
         std::iota(lines.back().begin(), lines.back().end(), 0);
+
+        float naturalCrossSize = 0.0f;
+        for (auto* child : node.children) {
+            float childCross = 0.0f;
+            if (row) {
+                childCross = child->hasExplicitHeight ? child->explicitHeight : 0.0f;
+            } else {
+                childCross = child->hasExplicitWidth ? child->explicitWidth : 0.0f;
+            }
+            naturalCrossSize = std::max(naturalCrossSize, childCross + (row ? child->box.marginVertical() : child->box.marginHorizontal()));
+        }
         lineMainSizes.push_back(mainAxisSize);
-        lineCrossSizes.push_back(crossAxisSize);
+        lineCrossSizes.push_back(naturalCrossSize > 0.0f ? naturalCrossSize : crossAxisSize);
     }
 
     float totalLinesCrossSize = 0.0f;
@@ -290,7 +301,8 @@ void FlexLayoutEngine::resolveFlexContainer(LayoutNode& node, float availableWid
 
             if (freeSpaceMain > 0 && flexGrowTotal > 0 && child->flex.flexGrow > 0) {
                 childMainSize += (freeSpaceMain * (child->flex.flexGrow / flexGrowTotal));
-            } else if (freeSpaceMain < 0 && flexShrinkTotal > 0 && child->flex.flexShrink > 0) {
+            } else if (freeSpaceMain < 0 && flexShrinkTotal > 0 && child->flex.flexShrink > 0
+                       && !child->hasExplicitWidth && !child->hasExplicitHeight) {
                 childMainSize += (freeSpaceMain * (child->flex.flexShrink / flexShrinkTotal));
             }
 
