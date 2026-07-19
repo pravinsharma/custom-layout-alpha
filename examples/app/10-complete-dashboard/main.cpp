@@ -44,6 +44,7 @@ int main()
             justify-content: space-between;
             align-items: center;
             gap: 16px;
+            padding: 0 16px;
         )");
         header.explicitHeight = 56.0f;
         header.hasExplicitHeight = true;
@@ -88,6 +89,7 @@ int main()
             display: flex;
             flex-direction: row;
             gap: 16px;
+            padding: 16px;
         )");
         body.flex.flexGrow = 1.0f;
         body.isFlexContainer = true;
@@ -99,7 +101,9 @@ int main()
             gap: 8px;
         )");
         sidebar.explicitWidth = 160.0f;
+        sidebar.explicitHeight = 168.0f;
         sidebar.hasExplicitWidth = true;
+        sidebar.hasExplicitHeight = true;
         sidebar.isFlexContainer = true;
 
         LayoutNode sideItem1{"side-item-1"};
@@ -155,12 +159,16 @@ int main()
 
         LayoutNode footerLink1{"footer-link-1"};
         footerLink1.flex.parseStyle("flex-grow: 0;");
+        footerLink1.explicitWidth = 60.0f;
         footerLink1.explicitHeight = 24.0f;
+        footerLink1.hasExplicitWidth = true;
         footerLink1.hasExplicitHeight = true;
 
         LayoutNode footerLink2{"footer-link-2"};
         footerLink2.flex.parseStyle("flex-grow: 0;");
+        footerLink2.explicitWidth = 60.0f;
         footerLink2.explicitHeight = 24.0f;
+        footerLink2.hasExplicitWidth = true;
         footerLink2.hasExplicitHeight = true;
 
         footer.addChild(&footerLink1);

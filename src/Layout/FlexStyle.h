@@ -67,6 +67,21 @@ struct FlexStyle {
     float gapRow = 0.0f;
     float gapColumn = 0.0f;
 
+    float marginTop = 0.0f;
+    float marginRight = 0.0f;
+    float marginBottom = 0.0f;
+    float marginLeft = 0.0f;
+
+    float paddingTop = 0.0f;
+    float paddingRight = 0.0f;
+    float paddingBottom = 0.0f;
+    float paddingLeft = 0.0f;
+
+    float borderTop = 0.0f;
+    float borderRight = 0.0f;
+    float borderBottom = 0.0f;
+    float borderLeft = 0.0f;
+
     float minWidth = 0.0f;
     float maxWidth = FLT_MAX;
     float minHeight = 0.0f;

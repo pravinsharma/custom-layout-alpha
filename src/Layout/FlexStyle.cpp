@@ -38,6 +38,44 @@ float parseFloatValue(const std::string& s) {
     return std::stof(num);
 }
 
+std::vector<std::string> splitValues(const std::string& value) {
+    std::vector<std::string> parts;
+    size_t start = 0;
+    while (true) {
+        size_t space = value.find(' ', start);
+        if (space == std::string::npos) {
+            std::string last = trim(value.substr(start));
+            if (!last.empty()) parts.push_back(last);
+            break;
+        }
+        std::string part = trim(value.substr(start, space - start));
+        if (!part.empty()) parts.push_back(part);
+        start = space + 1;
+    }
+    return parts;
+}
+
+void applyBoxShorthand(float& top, float& right, float& bottom, float& left, const std::string& value) {
+    std::vector<std::string> parts = splitValues(value);
+    if (parts.empty()) return;
+
+    if (parts.size() == 1) {
+        top = right = bottom = left = parseFloatValue(parts[0]);
+    } else if (parts.size() == 2) {
+        top = bottom = parseFloatValue(parts[0]);
+        right = left = parseFloatValue(parts[1]);
+    } else if (parts.size() == 3) {
+        top = parseFloatValue(parts[0]);
+        right = left = parseFloatValue(parts[1]);
+        bottom = parseFloatValue(parts[2]);
+    } else if (parts.size() >= 4) {
+        top = parseFloatValue(parts[0]);
+        right = parseFloatValue(parts[1]);
+        bottom = parseFloatValue(parts[2]);
+        left = parseFloatValue(parts[3]);
+    }
+}
+
 }
 
 void FlexStyle::parseStyle(const std::string& css) {
@@ -125,6 +163,36 @@ void FlexStyle::applyStyle() {
             gapRow = parseFloatValue(value);
         } else if (propLower == "gap-column") {
             gapColumn = parseFloatValue(value);
+        } else if (propLower == "margin") {
+            applyBoxShorthand(marginTop, marginRight, marginBottom, marginLeft, value);
+        } else if (propLower == "margin-top") {
+            marginTop = parseFloatValue(value);
+        } else if (propLower == "margin-right") {
+            marginRight = parseFloatValue(value);
+        } else if (propLower == "margin-bottom") {
+            marginBottom = parseFloatValue(value);
+        } else if (propLower == "margin-left") {
+            marginLeft = parseFloatValue(value);
+        } else if (propLower == "padding") {
+            applyBoxShorthand(paddingTop, paddingRight, paddingBottom, paddingLeft, value);
+        } else if (propLower == "padding-top") {
+            paddingTop = parseFloatValue(value);
+        } else if (propLower == "padding-right") {
+            paddingRight = parseFloatValue(value);
+        } else if (propLower == "padding-bottom") {
+            paddingBottom = parseFloatValue(value);
+        } else if (propLower == "padding-left") {
+            paddingLeft = parseFloatValue(value);
+        } else if (propLower == "border") {
+            applyBoxShorthand(borderTop, borderRight, borderBottom, borderLeft, value);
+        } else if (propLower == "border-top") {
+            borderTop = parseFloatValue(value);
+        } else if (propLower == "border-right") {
+            borderRight = parseFloatValue(value);
+        } else if (propLower == "border-bottom") {
+            borderBottom = parseFloatValue(value);
+        } else if (propLower == "border-left") {
+            borderLeft = parseFloatValue(value);
         } else if (propLower == "min-width") {
             minWidth = parseFloatValue(value);
         } else if (propLower == "max-width") {

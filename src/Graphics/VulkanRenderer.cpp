@@ -148,19 +148,35 @@ void VulkanRenderer::render(const RenderCommandList& commands)
     }
 
     if (m_extent.width == 0 || m_extent.height == 0) {
+        m_currentFrame = (m_currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
         return;
     }
 
-    vkWaitForFences(m_device, 1, &m_inFlightFences[m_currentFrame], VK_TRUE, UINT64_MAX);
+    if (glfwGetWindowAttrib(m_window, GLFW_ICONIFIED)) {
+        m_currentFrame = (m_currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+        return;
+    }
+
+    while (vkWaitForFences(m_device, 1, &m_inFlightFences[m_currentFrame], VK_TRUE, 1000000) != VK_SUCCESS) {
+        if (m_needsResize) {
+            recreateSwapchain();
+            m_needsResize = false;
+        }
+        if (m_extent.width == 0 || m_extent.height == 0) {
+            m_currentFrame = (m_currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+            return;
+        }
+    }
     vkResetFences(m_device, 1, &m_inFlightFences[m_currentFrame]);
 
     uint32_t imageIndex = 0;
-    VkResult result = vkAcquireNextImageKHR(m_device, m_swapchain, UINT64_MAX,
+    VkResult result = vkAcquireNextImageKHR(m_device, m_swapchain, 1000000,
                                              m_imageAvailableSemaphores[m_currentFrame],
                                              VK_NULL_HANDLE, &imageIndex);
 
-    if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+    if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || result == VK_TIMEOUT) {
         recreateSwapchain();
+        m_currentFrame = (m_currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
         return;
     }
 
@@ -203,8 +219,6 @@ void VulkanRenderer::render(const RenderCommandList& commands)
 
     for (const auto& cmd : commands) {
         if (cmd.type != RenderCommand::Type::Rect) continue;
-
-        std::cout << "  DRAW rect x=" << cmd.rect.x << " y=" << cmd.rect.y << " w=" << cmd.rect.width << " h=" << cmd.rect.height << "\n";
 
         float x = cmd.rect.x;
         float y = cmd.rect.y;
@@ -809,8 +823,25 @@ void VulkanRenderer::recreateSwapchain()
 
     vkDeviceWaitIdle(m_device);
     cleanupSwapchain();
-    createSwapchain();
-    createFramebuffers();
+
+    if (!createSwapchain()) {
+        std::cerr << "Failed to recreate swapchain\n";
+        return;
+    }
+
+    if (!createFramebuffers()) {
+        std::cerr << "Failed to recreate framebuffers\n";
+        return;
+    }
+
+    vkFreeCommandBuffers(m_device, m_commandPool,
+                         static_cast<uint32_t>(m_commandBuffers.size()),
+                         m_commandBuffers.data());
+    m_commandBuffers.clear();
+
+    if (!allocateCommandBuffers()) {
+        std::cerr << "Failed to reallocate command buffers after resize\n";
+    }
 }
 
 bool VulkanRenderer::createVertexBuffer()

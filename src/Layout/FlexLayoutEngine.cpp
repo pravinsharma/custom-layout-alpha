@@ -44,7 +44,8 @@ void FlexLayoutEngine::measureNode(LayoutNode& node, float availableWidth, float
         for (const auto* child : node.children) {
             const float intrinsic = estimateIntrinsicSize(*child);
             const float basis = child->flex.flexBasis > 0.0f ? child->flex.flexBasis : intrinsic;
-            maxChildWidth = std::max(maxChildWidth, basis + child->box.marginHorizontal());
+            maxChildWidth = std::max(maxChildWidth, basis + child->box.marginHorizontal()
+                                     + child->box.paddingHorizontal() + child->box.borderHorizontal());
         }
         node.measuredSize.width = std::max(node.flex.flexBasis, maxChildWidth);
     } else {
@@ -56,12 +57,16 @@ void FlexLayoutEngine::measureNode(LayoutNode& node, float availableWidth, float
         for (const auto* child : node.children) {
             const float intrinsic = estimateIntrinsicSize(*child);
             const float basis = child->flex.flexBasis > 0.0f ? child->flex.flexBasis : intrinsic;
-            maxChildHeight = std::max(maxChildHeight, basis + child->box.marginVertical());
+            maxChildHeight = std::max(maxChildHeight, basis + child->box.marginVertical()
+                                      + child->box.paddingVertical() + child->box.borderVertical());
         }
         node.measuredSize.height = std::max(node.flex.flexBasis, maxChildHeight);
     } else {
         node.measuredSize.height = node.explicitHeight;
     }
+
+    node.measuredSize.width += node.box.paddingHorizontal() + node.box.borderHorizontal();
+    node.measuredSize.height += node.box.paddingVertical() + node.box.borderVertical();
 
     node.measuredSize.width = std::clamp(node.measuredSize.width, node.flex.minWidth, node.flex.maxWidth);
     node.measuredSize.height = std::clamp(node.measuredSize.height, node.flex.minHeight, node.flex.maxHeight);
@@ -167,11 +172,15 @@ void FlexLayoutEngine::resolveFlexContainer(LayoutNode& node, float availableWid
 
     measureNode(node, availableWidth, availableHeight);
 
+    for (auto* child : node.children) {
+        measureNode(*child, availableWidth, availableHeight);
+    }
+
     const bool row = isRowDirection(node.flex.direction);
     const bool reverse = (node.flex.direction == FlexDirection::RowReverse || node.flex.direction == FlexDirection::ColumnReverse);
 
-    const float mainAxisSize = resolveMainAxisSize(node);
-    const float crossAxisSize = resolveCrossAxisSize(node);
+    const float mainAxisSize = row ? availableWidth : availableHeight;
+    const float crossAxisSize = row ? availableHeight : availableWidth;
 
     const float gapMain = row ? node.flex.gapColumn : node.flex.gapRow;
     const float gapCross = row ? node.flex.gapRow : node.flex.gapColumn;
@@ -199,14 +208,34 @@ void FlexLayoutEngine::resolveFlexContainer(LayoutNode& node, float availableWid
             float childMainSize = child->flex.flexBasis > 0.0f ? child->flex.flexBasis : intrinsic;
             childMainSize = std::clamp(childMainSize, child->flex.minWidth, child->flex.maxWidth);
 
+            float childMainBorder = row ?
+                (child->box.paddingHorizontal() + child->box.borderHorizontal()) :
+                (child->box.paddingVertical() + child->box.borderVertical());
+
             float childNaturalCrossSize = 0.0f;
             if (row) {
-                childNaturalCrossSize = child->hasExplicitHeight ? child->explicitHeight : (crossAxisSize - child->box.marginVertical());
+                if (child->hasExplicitHeight) {
+                    childNaturalCrossSize = child->explicitHeight;
+                } else if (child->isFlexContainer) {
+                    childNaturalCrossSize = child->measuredSize.height;
+                } else {
+                    childNaturalCrossSize = estimateIntrinsicSize(*child);
+                }
             } else {
-                childNaturalCrossSize = child->hasExplicitWidth ? child->explicitWidth : (crossAxisSize - child->box.marginVertical());
+                if (child->hasExplicitWidth) {
+                    childNaturalCrossSize = child->explicitWidth;
+                } else if (child->isFlexContainer) {
+                    childNaturalCrossSize = child->measuredSize.width;
+                } else {
+                    childNaturalCrossSize = estimateIntrinsicSize(*child);
+                }
             }
+            float childCrossBorder = row ?
+                (child->box.paddingVertical() + child->box.borderVertical()) :
+                (child->box.paddingHorizontal() + child->box.borderHorizontal());
+            childNaturalCrossSize += childCrossBorder;
 
-            if (!currentLine.empty() && currentLineMain + gapMain + childMainSize > mainAxisSize) {
+            if (!currentLine.empty() && currentLineMain + gapMain + childMainSize + childMainBorder > mainAxisSize) {
                 lines.push_back(currentLine);
                 lineMainSizes.push_back(currentLineMain);
                 lineCrossSizes.push_back(currentLineCross);
@@ -217,7 +246,7 @@ void FlexLayoutEngine::resolveFlexContainer(LayoutNode& node, float availableWid
 
             float lineGap = currentLine.empty() ? 0.0f : gapMain;
             currentLine.push_back(i);
-            currentLineMain += childMainSize + lineGap;
+            currentLineMain += childMainSize + childMainBorder + lineGap;
             currentLineCross = std::max(currentLineCross, childNaturalCrossSize);
         }
 
@@ -234,14 +263,30 @@ void FlexLayoutEngine::resolveFlexContainer(LayoutNode& node, float availableWid
         for (auto* child : node.children) {
             float childCross = 0.0f;
             if (row) {
-                childCross = child->hasExplicitHeight ? child->explicitHeight : 0.0f;
+                if (child->hasExplicitHeight) {
+                    childCross = child->explicitHeight;
+                } else if (child->isFlexContainer) {
+                    childCross = child->measuredSize.height;
+                } else {
+                    childCross = estimateIntrinsicSize(*child);
+                }
             } else {
-                childCross = child->hasExplicitWidth ? child->explicitWidth : 0.0f;
+                if (child->hasExplicitWidth) {
+                    childCross = child->explicitWidth;
+                } else if (child->isFlexContainer) {
+                    childCross = child->measuredSize.width;
+                } else {
+                    childCross = estimateIntrinsicSize(*child);
+                }
             }
-            naturalCrossSize = std::max(naturalCrossSize, childCross + (row ? child->box.marginVertical() : child->box.marginHorizontal()));
+            float childCrossBorder = row ?
+                (child->box.paddingVertical() + child->box.borderVertical()) :
+                (child->box.paddingHorizontal() + child->box.borderHorizontal());
+            float childMarginCross = row ? child->box.marginVertical() : child->box.marginHorizontal();
+            naturalCrossSize = std::max(naturalCrossSize, childCross + childCrossBorder + childMarginCross);
         }
         lineMainSizes.push_back(mainAxisSize);
-        lineCrossSizes.push_back(naturalCrossSize > 0.0f ? naturalCrossSize : crossAxisSize);
+        lineCrossSizes.push_back(crossAxisSize);
     }
 
     float totalLinesCrossSize = 0.0f;
@@ -277,7 +322,10 @@ void FlexLayoutEngine::resolveFlexContainer(LayoutNode& node, float availableWid
                     basis = child->explicitHeight;
                 }
             }
-            totalMainBasis += basis;
+            float childMainBorder = row ?
+                (child->box.paddingHorizontal() + child->box.borderHorizontal()) :
+                (child->box.paddingVertical() + child->box.borderVertical());
+            totalMainBasis += basis + childMainBorder;
         }
 
         float freeSpaceMain = mainAxisSize - gapMain * static_cast<float>(std::max(0, static_cast<int>(line.size()) - 1)) - totalMainBasis;
@@ -337,10 +385,26 @@ void FlexLayoutEngine::resolveFlexContainer(LayoutNode& node, float availableWid
 
             float childNaturalCrossSize = 0.0f;
             if (row) {
-                childNaturalCrossSize = child->hasExplicitHeight ? child->explicitHeight : (lineCrossSize - child->box.marginVertical());
+                if (child->hasExplicitHeight) {
+                    childNaturalCrossSize = child->explicitHeight;
+                } else if (child->isFlexContainer) {
+                    childNaturalCrossSize = child->measuredSize.height;
+                } else {
+                    childNaturalCrossSize = estimateIntrinsicSize(*child);
+                }
             } else {
-                childNaturalCrossSize = child->hasExplicitWidth ? child->explicitWidth : (lineCrossSize - child->box.marginVertical());
+                if (child->hasExplicitWidth) {
+                    childNaturalCrossSize = child->explicitWidth;
+                } else if (child->isFlexContainer) {
+                    childNaturalCrossSize = child->measuredSize.width;
+                } else {
+                    childNaturalCrossSize = estimateIntrinsicSize(*child);
+                }
             }
+            float childCrossBorder = row ?
+                (child->box.paddingVertical() + child->box.borderVertical()) :
+                (child->box.paddingHorizontal() + child->box.borderHorizontal());
+            childNaturalCrossSize += childCrossBorder;
 
             float childCrossSize = childNaturalCrossSize;
 
@@ -348,14 +412,14 @@ void FlexLayoutEngine::resolveFlexContainer(LayoutNode& node, float availableWid
                 if (row && !child->hasExplicitHeight) {
                     childCrossSize = lineCrossSize - child->box.marginVertical();
                 } else if (!row && !child->hasExplicitWidth) {
-                    childCrossSize = lineCrossSize - child->box.marginVertical();
+                    childCrossSize = lineCrossSize - child->box.marginHorizontal();
                 }
             }
 
             float alignOffset = resolveAlignItemsOffset(node.flex.alignItems, childCrossSize, lineCrossSize);
 
-            float x = node.computedRect.x + child->box.marginLeft;
-            float y = node.computedRect.y + child->box.marginTop + currentCross;
+            float x = node.computedRect.x + node.box.paddingLeft + child->box.marginLeft;
+            float y = node.computedRect.y + node.box.paddingTop + child->box.marginTop + currentCross;
 
             if (row) {
                 if (reverse) {
@@ -373,21 +437,25 @@ void FlexLayoutEngine::resolveFlexContainer(LayoutNode& node, float availableWid
                 x += alignOffset;
             }
 
+            float childMainBorder = row ?
+                (child->box.paddingHorizontal() + child->box.borderHorizontal()) :
+                (child->box.paddingVertical() + child->box.borderVertical());
+
             positionNode(*child, x, y,
-                         row ? childMainSize : childCrossSize,
-                         row ? childCrossSize : childMainSize);
+                         row ? childMainSize + childMainBorder : childCrossSize,
+                         row ? childCrossSize : childMainSize + childMainBorder);
 
             if (node.name == "features") {
                 std::cout << "  [POS " << child->name << "] x=" << x << " y=" << y
-                          << " w=" << (row ? childMainSize : childCrossSize)
-                          << " h=" << (row ? childCrossSize : childMainSize) << "\n";
+                          << " w=" << (row ? childMainSize + childMainBorder : childCrossSize)
+                          << " h=" << (row ? childCrossSize : childMainSize + childMainBorder) << "\n";
             }
 
             if (i + 1 < line.size()) {
                 if (reverse) {
-                    currentMain -= childMainSize + gapMain + itemSpacing;
+                    currentMain -= childMainSize + childMainBorder + gapMain + itemSpacing;
                 } else {
-                    currentMain += childMainSize + gapMain + itemSpacing;
+                    currentMain += childMainSize + childMainBorder + gapMain + itemSpacing;
                 }
             }
         }
@@ -398,6 +466,19 @@ void FlexLayoutEngine::resolveFlexContainer(LayoutNode& node, float availableWid
 
 void FlexLayoutEngine::computeLayout(LayoutNode& node, float availableWidth, float availableHeight)
 {
+    node.box.marginTop = node.flex.marginTop;
+    node.box.marginRight = node.flex.marginRight;
+    node.box.marginBottom = node.flex.marginBottom;
+    node.box.marginLeft = node.flex.marginLeft;
+    node.box.paddingTop = node.flex.paddingTop;
+    node.box.paddingRight = node.flex.paddingRight;
+    node.box.paddingBottom = node.flex.paddingBottom;
+    node.box.paddingLeft = node.flex.paddingLeft;
+    node.box.borderTop = node.flex.borderTop;
+    node.box.borderRight = node.flex.borderRight;
+    node.box.borderBottom = node.flex.borderBottom;
+    node.box.borderLeft = node.flex.borderLeft;
+
     if (!node.isFlexContainer || node.children.empty()) {
         node.computedRect.width = availableWidth;
         node.computedRect.height = availableHeight;
@@ -407,7 +488,10 @@ void FlexLayoutEngine::computeLayout(LayoutNode& node, float availableWidth, flo
     node.computedRect.width = availableWidth;
     node.computedRect.height = availableHeight;
 
-    resolveFlexContainer(node, availableWidth, availableHeight);
+    float contentWidth = availableWidth - node.box.paddingHorizontal() - node.box.borderHorizontal();
+    float contentHeight = availableHeight - node.box.paddingVertical() - node.box.borderVertical();
+
+    resolveFlexContainer(node, contentWidth, contentHeight);
 
     for (auto* child : node.children) {
         computeLayout(*child, child->computedRect.width, child->computedRect.height);

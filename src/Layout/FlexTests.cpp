@@ -261,20 +261,19 @@ static TestResult testBoxBleedDetection()
     root.isFlexContainer = true;
 
     LayoutNode child{"child"};
-    child.box.paddingTop = 20.0f;
-    child.box.paddingBottom = 20.0f;
-    child.box.borderTop = 10.0f;
-    child.box.borderBottom = 10.0f;
-    child.explicitHeight = 30.0f;
-    child.hasExplicitHeight = true;
+    child.flex.paddingTop = 20.0f;
+    child.flex.paddingBottom = 20.0f;
+    child.flex.borderTop = 10.0f;
+    child.flex.borderBottom = 10.0f;
+    child.flex.flexBasis = 50.0f;
     root.addChild(&child);
 
     FlexLayoutEngine engine;
-    engine.computeLayout(root, 100.0f, 30.0f);
+    engine.computeLayout(root, 100.0f, 50.0f);
 
     std::string issues = LayoutDumper::detectIssues(child);
     if (issues.find("BOX_BLEED") == std::string::npos) {
-        result.error = "Expected BOX_BLEED issue for child with padding+border > height";
+        result.error = "Expected BOX_BLEED issue for child stretched below padding+border";
         result.passed = false;
         return result;
     }
