@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <cfloat>
 
 namespace vkapp::Layout {
 
@@ -66,9 +67,9 @@ struct FlexStyle {
     float gapColumn = 0.0f;
 
     float minWidth = 0.0f;
-    float maxWidth = 0.0f;
+    float maxWidth = FLT_MAX;
     float minHeight = 0.0f;
-    float maxHeight = 0.0f;
+    float maxHeight = FLT_MAX;
 };
 
 } // namespace vkapp::Layout

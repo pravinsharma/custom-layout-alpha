@@ -15,6 +15,8 @@ private:
     float resolveMainAxisSize(const LayoutNode& node) const;
     float resolveCrossAxisSize(const LayoutNode& node) const;
     bool isRowDirection(FlexDirection direction) const;
+    float resolveJustifyOffset(JustifyContent justify, float freeSpace, int itemCount, float gap) const;
+    float resolveItemSpacing(JustifyContent justify, float freeSpace, int itemCount, float gap) const;
 };
 
 } // namespace vkapp::Layout

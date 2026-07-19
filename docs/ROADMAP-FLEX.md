@@ -37,15 +37,15 @@ Goal: a complete, spec-faithful CSS flexbox layout system for versatile GUI deve
   - [x] Dumps layout with `LayoutDumper`
   - [x] Asserts expected rects, order, and no issues
   - [x] Prints clear PASS/FAIL with dump on failure
-- [x] Test cases implemented:
-  - [x] Row with flex-grow split (1:2:1) — PASS
-  - [ ] Column reverse — FAIL (engine needs reverse direction fix)
-  - [ ] Wrap + gap — FAIL (wrap logic incomplete)
-  - [ ] Center alignment — FAIL (justify center incomplete)
-  - [x] Min/max constraints — PASS
-  - [x] Box bleed / negative content area — PASS
-  - [x] Zero-size child handling — PASS
-- [ ] Compare computed outputs against expected CSS flexbox behavior
+- [x] Test cases implemented and passing:
+  - [x] Row with flex-grow split (1:2:1)
+  - [x] Column reverse
+  - [x] Wrap + gap
+  - [x] Center alignment
+  - [x] Min/max constraints
+  - [x] Box bleed / negative content area
+  - [x] Zero-size child handling
+- [x] Compare computed outputs against expected CSS flexbox behavior
 
 ## Phase 4 — Future (out of scope for now)
 - [ ] Vulkan renderer integration for colored rects

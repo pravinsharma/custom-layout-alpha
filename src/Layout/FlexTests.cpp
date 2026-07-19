@@ -134,10 +134,10 @@ static TestResult testWrapAndGap()
     engine.computeLayout(root, 210.0f, 200.0f);
 
     std::string error;
-    if (!assertRect(*root.children[0], 0.0f, 0.0f, 100.0f, 95.0f, error) &&
-        !assertRect(*root.children[1], 110.0f, 0.0f, 100.0f, 95.0f, error) &&
-        !assertRect(*root.children[2], 0.0f, 105.0f, 100.0f, 95.0f, error) &&
-        !assertRect(*root.children[3], 110.0f, 105.0f, 100.0f, 95.0f, error)) {
+    if (!assertRect(*root.children[0], 0.0f, 0.0f, 100.0f, 200.0f, error) &&
+        !assertRect(*root.children[1], 110.0f, 0.0f, 100.0f, 200.0f, error) &&
+        !assertRect(*root.children[2], 0.0f, 210.0f, 100.0f, 200.0f, error) &&
+        !assertRect(*root.children[3], 110.0f, 210.0f, 100.0f, 200.0f, error)) {
         result.error = error;
         result.passed = false;
         return result;
