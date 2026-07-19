@@ -34,27 +34,35 @@ int main()
         }
 
         vkapp::Layout::LayoutNode root{"root"};
-        root.flex.display = vkapp::Layout::Display::Flex;
-        root.flex.direction = vkapp::Layout::FlexDirection::Row;
-        root.flex.justify = vkapp::Layout::JustifyContent::SpaceBetween;
-        root.flex.alignItems = vkapp::Layout::AlignItems::Stretch;
-        root.flex.gapRow = 10.0f;
+        root.flex.parseStyle(R"(
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+            align-items: stretch;
+            gap: 10px;
+        )");
         root.isFlexContainer = true;
 
         vkapp::Layout::LayoutNode child1{"child1"};
-        child1.flex.flexGrow = 1.0f;
-        child1.flex.minWidth = 50.0f;
-        child1.flex.maxWidth = 200.0f;
+        child1.flex.parseStyle(R"(
+            flex-grow: 1;
+            min-width: 50px;
+            max-width: 200px;
+        )");
 
         vkapp::Layout::LayoutNode child2{"child2"};
-        child2.flex.flexGrow = 2.0f;
-        child2.flex.minWidth = 50.0f;
-        child2.flex.maxWidth = 400.0f;
+        child2.flex.parseStyle(R"(
+            flex-grow: 2;
+            min-width: 50px;
+            max-width: 400px;
+        )");
 
         vkapp::Layout::LayoutNode child3{"child3"};
-        child3.flex.flexGrow = 1.0f;
-        child3.flex.minWidth = 50.0f;
-        child3.flex.maxWidth = 200.0f;
+        child3.flex.parseStyle(R"(
+            flex-grow: 1;
+            min-width: 50px;
+            max-width: 200px;
+        )");
 
         root.addChild(&child1);
         root.addChild(&child2);

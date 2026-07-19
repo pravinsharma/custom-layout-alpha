@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <cfloat>
+#include <string>
 
 namespace vkapp::Layout {
 
@@ -70,6 +71,11 @@ struct FlexStyle {
     float maxWidth = FLT_MAX;
     float minHeight = 0.0f;
     float maxHeight = FLT_MAX;
+
+    std::string style;
+
+    void parseStyle(const std::string& css);
+    void applyStyle();
 };
 
 } // namespace vkapp::Layout

@@ -28,6 +28,7 @@ add_executable(${PROJECT_NAME}
     src/Input/Keyboard.cpp
     src/Input/Mouse.cpp
     src/System/Console.cpp
+    src/Layout/FlexStyle.cpp
     src/Layout/FlexLayoutEngine.cpp
     src/Layout/LayoutDumper.cpp
     src/Layout/FlexTests.cpp
