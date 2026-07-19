@@ -1,5 +1,6 @@
 #include "Core/Window.h"
 #include "Layout/FlexLayoutEngine.h"
+#include "Layout/LayoutDumper.h"
 #include "Graphics/RenderCommandBuilder.h"
 #include "System/Console.h"
 
@@ -57,6 +58,9 @@ int main()
             std::cout << "  " << cmd.rect.x << ", " << cmd.rect.y << " "
                       << cmd.rect.width << "x" << cmd.rect.height << "\n";
         }
+
+        std::cout << "\nLayout dump:\n";
+        std::cout << vkapp::Layout::LayoutDumper::dumpTree(root);
 
         while (!window.shouldClose()) {
             window.pollEvents();

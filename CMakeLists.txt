@@ -28,6 +28,7 @@ add_executable(${PROJECT_NAME}
     src/Input/Mouse.cpp
     src/System/Console.cpp
     src/Layout/FlexLayoutEngine.cpp
+    src/Layout/LayoutDumper.cpp
     src/Graphics/RenderCommandBuilder.cpp
 )
 
