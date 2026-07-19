@@ -20,6 +20,8 @@ struct LayoutNode {
     Rect computedRect{};
     Size measuredSize{};
 
+    float explicitWidth = 0.0f;
+    float explicitHeight = 0.0f;
     bool hasExplicitWidth = false;
     bool hasExplicitHeight = false;
     bool isFlexContainer = false;

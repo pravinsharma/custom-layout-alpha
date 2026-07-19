@@ -16,12 +16,12 @@ Goal: a complete, spec-faithful CSS flexbox layout system for versatile GUI deve
   - [x] `computeLayout(LayoutNode&, float availableWidth, float availableHeight)`
   - [x] Row/column main-axis resolution
   - [x] Flex grow/shrink/basis distribution
-  - [ ] Wrap handling
+  - [x] Wrap handling with line tracking
   - [x] Justify content alignment
-  - [ ] Align items / align content (cross-axis stretch is partial)
+  - [x] Align items / align content (cross-axis stretch, center, flex-end)
   - [x] Min/max constraint clamping
   - [x] Gap insertion
-  - [ ] Intrinsic size estimation for unknown-size children
+  - [x] Intrinsic size estimation for unknown-size children
 
 ## Phase 2 — Render Integration & Debugging
 - [x] `src/Graphics/RenderCommand.h` — command types for rects and later primitives

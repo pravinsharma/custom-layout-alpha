@@ -21,18 +21,21 @@ static TestResult testRowFlexGrowSplit()
     child1.flex.flexGrow = 1.0f;
     child1.flex.minWidth = 0.0f;
     child1.flex.maxWidth = 1000.0f;
+    child1.explicitHeight = 100.0f;
     child1.hasExplicitHeight = true;
 
     LayoutNode child2{"child2"};
     child2.flex.flexGrow = 2.0f;
     child2.flex.minWidth = 0.0f;
     child2.flex.maxWidth = 1000.0f;
+    child2.explicitHeight = 100.0f;
     child2.hasExplicitHeight = true;
 
     LayoutNode child3{"child3"};
     child3.flex.flexGrow = 1.0f;
     child3.flex.minWidth = 0.0f;
     child3.flex.maxWidth = 1000.0f;
+    child3.explicitHeight = 100.0f;
     child3.hasExplicitHeight = true;
 
     root.addChild(&child1);
@@ -76,11 +79,15 @@ static TestResult testColumnReverse()
     child1.flex.flexGrow = 1.0f;
     child1.flex.minHeight = 0.0f;
     child1.flex.maxHeight = 1000.0f;
+    child1.explicitWidth = 200.0f;
+    child1.hasExplicitWidth = true;
 
     LayoutNode child2{"child2"};
     child2.flex.flexGrow = 1.0f;
     child2.flex.minHeight = 0.0f;
     child2.flex.maxHeight = 1000.0f;
+    child2.explicitWidth = 200.0f;
+    child2.hasExplicitWidth = true;
 
     root.addChild(&child1);
     root.addChild(&child2);
@@ -126,6 +133,7 @@ static TestResult testWrapAndGap()
         child.flex.flexShrink = 0.0f;
         child.flex.minWidth = 0.0f;
         child.flex.maxWidth = 100.0f;
+        child.explicitHeight = 200.0f;
         child.hasExplicitHeight = true;
         root.addChild(&child);
     }
@@ -169,6 +177,7 @@ static TestResult testCenterAlignment()
     child.flex.flexBasis = 50.0f;
     child.flex.flexGrow = 0.0f;
     child.flex.flexShrink = 0.0f;
+    child.explicitHeight = 100.0f;
     child.hasExplicitHeight = true;
     root.addChild(&child);
 
@@ -207,11 +216,15 @@ static TestResult testMinMaxConstraints()
     child1.flex.flexGrow = 1.0f;
     child1.flex.minWidth = 80.0f;
     child1.flex.maxWidth = 120.0f;
+    child1.explicitHeight = 100.0f;
+    child1.hasExplicitHeight = true;
 
     LayoutNode child2{"child2"};
     child2.flex.flexGrow = 1.0f;
     child2.flex.minWidth = 80.0f;
     child2.flex.maxWidth = 120.0f;
+    child2.explicitHeight = 100.0f;
+    child2.hasExplicitHeight = true;
 
     root.addChild(&child1);
     root.addChild(&child2);
@@ -252,6 +265,7 @@ static TestResult testBoxBleedDetection()
     child.box.paddingBottom = 20.0f;
     child.box.borderTop = 10.0f;
     child.box.borderBottom = 10.0f;
+    child.explicitHeight = 30.0f;
     child.hasExplicitHeight = true;
     root.addChild(&child);
 
@@ -283,6 +297,8 @@ static TestResult testZeroSizeChild()
     child.flex.flexBasis = 0.0f;
     child.flex.flexGrow = 0.0f;
     child.flex.flexShrink = 0.0f;
+    child.explicitHeight = 100.0f;
+    child.hasExplicitHeight = true;
     root.addChild(&child);
 
     FlexLayoutEngine engine;
@@ -290,6 +306,163 @@ static TestResult testZeroSizeChild()
 
     std::string error;
     if (!assertRect(child, 0.0f, 0.0f, 0.0f, 100.0f, error)) {
+        result.error = error;
+        result.passed = false;
+        return result;
+    }
+
+    result.passed = true;
+    return result;
+}
+
+static TestResult testAlignItemsCenter()
+{
+    TestResult result;
+    result.name = "AlignItemsCenter";
+
+    LayoutNode root{"root"};
+    root.flex.display = Display::Flex;
+    root.flex.direction = FlexDirection::Row;
+    root.flex.alignItems = AlignItems::Center;
+    root.isFlexContainer = true;
+
+    LayoutNode child{"child"};
+    child.flex.flexBasis = 100.0f;
+    child.flex.flexGrow = 0.0f;
+    child.flex.flexShrink = 0.0f;
+    child.explicitHeight = 50.0f;
+    child.hasExplicitHeight = true;
+    root.addChild(&child);
+
+    FlexLayoutEngine engine;
+    engine.computeLayout(root, 200.0f, 100.0f);
+
+    std::string error;
+    if (!assertRect(child, 0.0f, 25.0f, 100.0f, 50.0f, error)) {
+        result.error = error;
+        result.passed = false;
+        return result;
+    }
+
+    if (!assertNoIssues(root, error)) {
+        result.error = error;
+        result.passed = false;
+        return result;
+    }
+
+    result.passed = true;
+    return result;
+}
+
+static TestResult testAlignItemsFlexEnd()
+{
+    TestResult result;
+    result.name = "AlignItemsFlexEnd";
+
+    LayoutNode root{"root"};
+    root.flex.display = Display::Flex;
+    root.flex.direction = FlexDirection::Row;
+    root.flex.alignItems = AlignItems::FlexEnd;
+    root.isFlexContainer = true;
+
+    LayoutNode child{"child"};
+    child.flex.flexBasis = 100.0f;
+    child.flex.flexGrow = 0.0f;
+    child.flex.flexShrink = 0.0f;
+    child.explicitHeight = 50.0f;
+    child.hasExplicitHeight = true;
+    root.addChild(&child);
+
+    FlexLayoutEngine engine;
+    engine.computeLayout(root, 200.0f, 100.0f);
+
+    std::string error;
+    if (!assertRect(child, 0.0f, 50.0f, 100.0f, 50.0f, error)) {
+        result.error = error;
+        result.passed = false;
+        return result;
+    }
+
+    if (!assertNoIssues(root, error)) {
+        result.error = error;
+        result.passed = false;
+        return result;
+    }
+
+    result.passed = true;
+    return result;
+}
+
+static TestResult testAlignContentCenter()
+{
+    TestResult result;
+    result.name = "AlignContentCenter";
+
+    LayoutNode root{"root"};
+    root.flex.display = Display::Flex;
+    root.flex.direction = FlexDirection::Row;
+    root.flex.wrap = FlexWrap::Wrap;
+    root.flex.gapRow = 10.0f;
+    root.flex.gapColumn = 10.0f;
+    root.flex.alignContent = AlignContent::Center;
+    root.isFlexContainer = true;
+
+    for (int i = 0; i < 2; ++i) {
+        LayoutNode child{"child" + std::to_string(i)};
+        child.flex.flexBasis = 100.0f;
+        child.flex.flexGrow = 0.0f;
+        child.flex.flexShrink = 0.0f;
+        child.explicitHeight = 50.0f;
+        child.hasExplicitHeight = true;
+        root.addChild(&child);
+    }
+
+    FlexLayoutEngine engine;
+    engine.computeLayout(root, 200.0f, 200.0f);
+
+    std::string error;
+    if (!assertRect(*root.children[0], 0.0f, 45.0f, 100.0f, 50.0f, error) &&
+        !assertRect(*root.children[1], 0.0f, 105.0f, 100.0f, 50.0f, error)) {
+        result.error = error;
+        result.passed = false;
+        return result;
+    }
+
+    if (!assertNoIssues(root, error)) {
+        result.error = error;
+        result.passed = false;
+        return result;
+    }
+
+    result.passed = true;
+    return result;
+}
+
+static TestResult testIntrinsicSizeFallback()
+{
+    TestResult result;
+    result.name = "IntrinsicSizeFallback";
+
+    LayoutNode root{"root"};
+    root.flex.display = Display::Flex;
+    root.flex.direction = FlexDirection::Row;
+    root.isFlexContainer = true;
+
+    LayoutNode child{"child"};
+    child.flex.flexGrow = 1.0f;
+    root.addChild(&child);
+
+    FlexLayoutEngine engine;
+    engine.computeLayout(root, 200.0f, 100.0f);
+
+    std::string error;
+    if (!assertRect(child, 0.0f, 0.0f, 200.0f, 100.0f, error)) {
+        result.error = error;
+        result.passed = false;
+        return result;
+    }
+
+    if (!assertNoIssues(root, error)) {
         result.error = error;
         result.passed = false;
         return result;
@@ -309,6 +482,10 @@ int runAllTests()
     runner.addTest("MinMaxConstraints", testMinMaxConstraints);
     runner.addTest("BoxBleedDetection", testBoxBleedDetection);
     runner.addTest("ZeroSizeChild", testZeroSizeChild);
+    runner.addTest("AlignItemsCenter", testAlignItemsCenter);
+    runner.addTest("AlignItemsFlexEnd", testAlignItemsFlexEnd);
+    runner.addTest("AlignContentCenter", testAlignContentCenter);
+    runner.addTest("IntrinsicSizeFallback", testIntrinsicSizeFallback);
 
     return runner.runAll();
 }

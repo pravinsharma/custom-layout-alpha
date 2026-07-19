@@ -73,6 +73,8 @@ int main()
         std::cout << "\nLayout dump:\n";
         std::cout << vkapp::Layout::LayoutDumper::dumpTree(root);
 
+        glfwSetWindowShouldClose(window.getHandle(), GLFW_TRUE);
+
         while (!window.shouldClose()) {
             window.pollEvents();
         }

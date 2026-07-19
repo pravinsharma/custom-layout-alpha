@@ -17,6 +17,9 @@ private:
     bool isRowDirection(FlexDirection direction) const;
     float resolveJustifyOffset(JustifyContent justify, float freeSpace, int itemCount, float gap) const;
     float resolveItemSpacing(JustifyContent justify, float freeSpace, int itemCount, float gap) const;
+    float resolveAlignItemsOffset(AlignItems align, float itemSize, float lineSize) const;
+    float resolveAlignContentOffset(AlignContent align, float totalLinesSize, float containerSize, int lineCount) const;
+    float estimateIntrinsicSize(const LayoutNode& child) const;
 };
 
 } // namespace vkapp::Layout
