@@ -27,6 +27,8 @@ add_executable(${PROJECT_NAME}
     src/Input/Keyboard.cpp
     src/Input/Mouse.cpp
     src/System/Console.cpp
+    src/Layout/FlexLayoutEngine.cpp
+    src/Graphics/RenderCommandBuilder.cpp
 )
 
 target_include_directories(${PROJECT_NAME} PRIVATE ${Vulkan_INCLUDE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/src)
