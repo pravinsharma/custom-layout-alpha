@@ -66,6 +66,7 @@ bool Window::initialize(EventDispatcher& dispatcher)
     glfwSetMouseButtonCallback(m_window, mouseButtonCallback);
     glfwSetCursorPosCallback(m_window, cursorPosCallback);
     glfwSetScrollCallback(m_window, scrollCallback);
+    glfwSetWindowCloseCallback(m_window, windowCloseCallback);
 
     m_dispatcher = &dispatcher;
     m_keyboard.registerListeners(dispatcher);
@@ -193,6 +194,17 @@ void Window::scrollCallback(GLFWwindow* window, double xOffset, double yOffset)
     }
 
     MouseScrollEvent event(xOffset, yOffset);
+    owner->m_dispatcher->dispatch(event);
+}
+
+void Window::windowCloseCallback(GLFWwindow* window)
+{
+    Window* owner = static_cast<Window*>(glfwGetWindowUserPointer(window));
+    if (!owner || !owner->m_dispatcher) {
+        return;
+    }
+
+    WindowCloseEvent event;
     owner->m_dispatcher->dispatch(event);
 }
 

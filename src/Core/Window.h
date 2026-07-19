@@ -63,6 +63,7 @@ private:
     static void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods);
     static void cursorPosCallback(GLFWwindow* window, double x, double y);
     static void scrollCallback(GLFWwindow* window, double xOffset, double yOffset);
+    static void windowCloseCallback(GLFWwindow* window);
 
     static bool s_glfwInitialized;
 
