@@ -412,7 +412,7 @@ int main()
         vkapp::Layout::FlexLayoutEngine engine;
         engine.computeLayout(body, 800.0f, 900.0f);
 
-        auto commands = vkapp::Graphics::buildRenderTree(body);
+        auto commands = vkapp::Graphics::buildRenderTree(body, 0, true);
 
         std::cout << "Computed layout:\n";
         for (const auto& cmd : commands) {
@@ -421,7 +421,10 @@ int main()
         }
 
         std::cout << "\nLayout dump:\n";
-        std::cout << vkapp::Layout::LayoutDumper::dumpTree(body);
+        std::cout << vkapp::Layout::LayoutDumper::dumpTree(body, {
+            .includeRenderXray = true,
+            .placeholderMode = true
+        });
 
         vkapp::Graphics::VulkanRenderer renderer(window.getHandle());
         if (!renderer.initialize()) {

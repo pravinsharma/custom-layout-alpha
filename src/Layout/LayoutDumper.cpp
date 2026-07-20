@@ -1,5 +1,7 @@
 #include "LayoutDumper.h"
 
+#include "Graphics/RenderCommandBuilder.h"
+
 #include <algorithm>
 #include <cmath>
 #include <sstream>
@@ -74,6 +76,25 @@ std::string LayoutDumper::dumpNode(const LayoutNode& node, int depth, const Layo
         out << indent << "    gapRow=" << node.flex.gapRow << " gapColumn=" << node.flex.gapColumn << "\n";
         out << indent << "    minWidth=" << node.flex.minWidth << " maxWidth=" << node.flex.maxWidth
             << " minHeight=" << node.flex.minHeight << " maxHeight=" << node.flex.maxHeight << "\n";
+    }
+
+    if (options.includeRenderXray) {
+        const auto info = vkapp::Graphics::getNodeRenderInfo(node, depth, options.placeholderMode);
+
+        out << indent << "  renderXray:\n";
+        out << indent << "    isCard=" << (info.isCard ? "true" : "false")
+            << " isLeaf=" << (info.isLeaf ? "true" : "false") << "\n";
+        out << indent << "    rect: x=" << info.renderX << " y=" << info.renderY
+            << " w=" << info.renderWidth << " h=" << info.renderHeight << "\n";
+        out << indent << "    color: r=" << info.colorR << " g=" << info.colorG
+            << " b=" << info.colorB << " a=" << info.colorA << "\n";
+        out << indent << "    layer=" << info.layer << " opacity=" << info.opacity
+            << " zIndex=" << info.zIndex << "\n";
+
+        if (info.hasTextPlaceholder) {
+            out << indent << "    textRect: x=" << info.textX << " y=" << info.textY
+                << " w=" << info.textWidth << " h=" << info.textHeight << "\n";
+        }
     }
 
     if (options.includeIssues) {

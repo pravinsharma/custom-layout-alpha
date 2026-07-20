@@ -13,6 +13,8 @@ struct LayoutDumpOptions {
     bool includeMeasured = true;
     bool includeChildren = true;
     bool includeIssues = true;
+    bool includeRenderXray = false;
+    bool placeholderMode = false;
     std::string indentString = "  ";
 };
 

@@ -60,9 +60,101 @@ Color colorFromDepthAndName(int depth, const std::string& name) {
     return linearize({r + m, g + m, b + m, 1.0f});
 }
 
+Color colorForPlaceholder(int depth, bool isCard) {
+    if (isCard) {
+        return linearize({1.0f, 1.0f, 0.85f, 1.0f});
+    }
+
+    float v = 0.95f - depth * 0.08f;
+    v = std::clamp(v, 0.25f, 0.95f);
+    return linearize({v, v, v, 1.0f});
 }
 
-RenderCommandList buildRenderTree(const vkapp::Layout::LayoutNode& node)
+float approximateTextWidth(const std::string& name) {
+    size_t chars = name.size();
+    float charWidth = 9.0f;
+    float width = static_cast<float>(chars) * charWidth + 10.0f;
+    return std::max(width, 40.0f);
+}
+
+}
+
+NodeRenderInfo getNodeRenderInfo(const vkapp::Layout::LayoutNode& node, int depth, bool placeholderMode)
+{
+    NodeRenderInfo info{};
+    info.isCard = node.name.find("card") != std::string::npos;
+    info.isLeaf = node.children.empty();
+    info.layer = static_cast<int32_t>(node.order);
+    info.opacity = node.opacity;
+    info.zIndex = node.positioning.zIndex;
+
+    const auto& rect = node.computedRect;
+    const float bt = node.box.borderTop;
+    const float br = node.box.borderRight;
+    const float bb = node.box.borderBottom;
+    const float bl = node.box.borderLeft;
+
+    if (placeholderMode) {
+        if (info.isLeaf) {
+            float textWidth = approximateTextWidth(node.name);
+            float textHeight = rect.height;
+            float textX = rect.x + bl;
+            float textY = rect.y + bt;
+
+            float innerWidth = std::max(0.0f, rect.width - bl - br);
+            float innerHeight = std::max(0.0f, rect.height - bt - bb);
+
+            if (textWidth > innerWidth) {
+                textWidth = innerWidth;
+            }
+            if (textHeight > innerHeight) {
+                textHeight = innerHeight;
+            }
+
+            info.renderX = textX;
+            info.renderY = textY;
+            info.renderWidth = textWidth;
+            info.renderHeight = textHeight;
+            info.hasTextPlaceholder = true;
+            info.textX = textX;
+            info.textY = textY;
+            info.textWidth = textWidth;
+            info.textHeight = textHeight;
+
+            Color textColor = linearize({0.0f, 0.0f, 0.0f, 1.0f});
+            info.colorR = textColor.r;
+            info.colorG = textColor.g;
+            info.colorB = textColor.b;
+            info.colorA = textColor.a;
+        } else {
+            info.renderX = rect.x;
+            info.renderY = rect.y;
+            info.renderWidth = rect.width;
+            info.renderHeight = rect.height;
+
+            Color bg = colorForPlaceholder(depth, info.isCard);
+            info.colorR = bg.r;
+            info.colorG = bg.g;
+            info.colorB = bg.b;
+            info.colorA = bg.a;
+        }
+    } else {
+        info.renderX = rect.x;
+        info.renderY = rect.y;
+        info.renderWidth = rect.width;
+        info.renderHeight = rect.height;
+
+        Color c = linearize(node.color.value_or(colorFromDepthAndName(depth, node.name)));
+        info.colorR = c.r;
+        info.colorG = c.g;
+        info.colorB = c.b;
+        info.colorA = c.a;
+    }
+
+    return info;
+}
+
+RenderCommandList buildRenderTree(const vkapp::Layout::LayoutNode& node, int depth, bool placeholderMode)
 {
     RenderCommandList commands;
     commands.reserve(16);
@@ -76,6 +168,8 @@ RenderCommandList buildRenderTree(const vkapp::Layout::LayoutNode& node)
     const float br = node.box.borderRight;
     const float bb = node.box.borderBottom;
     const float bl = node.box.borderLeft;
+    const bool isCard = node.name.find("card") != std::string::npos;
+    const bool isLeaf = node.children.empty();
 
     if (node.borderColor.has_value() && (bt > 0.0f || br > 0.0f || bb > 0.0f || bl > 0.0f)) {
         RenderCommand border;
@@ -106,15 +200,42 @@ RenderCommandList buildRenderTree(const vkapp::Layout::LayoutNode& node)
 
     RenderCommand cmd;
     cmd.type = RenderCommand::Type::Rect;
-    cmd.rect = rect;
-    cmd.color = linearize(node.color.value_or(colorFromDepthAndName(0, node.name)));
+
+    if (placeholderMode) {
+        if (isLeaf) {
+            float textWidth = approximateTextWidth(node.name);
+            float textHeight = rect.height;
+            float textX = rect.x + bl;
+            float textY = rect.y + bt;
+
+            float innerWidth = std::max(0.0f, rect.width - bl - br);
+            float innerHeight = std::max(0.0f, rect.height - bt - bb);
+
+            if (textWidth > innerWidth) {
+                textWidth = innerWidth;
+            }
+            if (textHeight > innerHeight) {
+                textHeight = innerHeight;
+            }
+
+            cmd.rect = {textX, textY, textWidth, textHeight};
+            cmd.color = linearize({0.0f, 0.0f, 0.0f, 1.0f});
+        } else {
+            cmd.rect = rect;
+            cmd.color = colorForPlaceholder(depth, isCard);
+        }
+    } else {
+        cmd.rect = rect;
+        cmd.color = linearize(node.color.value_or(colorFromDepthAndName(depth, node.name)));
+    }
+
     cmd.layer = static_cast<int32_t>(node.order);
     cmd.opacity = node.opacity;
     cmd.zIndex = node.positioning.zIndex;
     commands.push_back(cmd);
 
     for (const auto* child : node.children) {
-        auto childCommands = buildRenderTree(*child);
+        auto childCommands = buildRenderTree(*child, depth + 1, placeholderMode);
         commands.insert(commands.end(), childCommands.begin(), childCommands.end());
     }
 
