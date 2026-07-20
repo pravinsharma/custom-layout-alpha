@@ -1,8 +1,10 @@
 #pragma once
 
 #include <cstdint>
-#include <cfloat>
+#include <optional>
 #include <string>
+
+#include "../Graphics/RenderCommand.h"
 
 namespace vkapp::Layout {
 
@@ -81,6 +83,9 @@ struct FlexStyle {
     float borderRight = 0.0f;
     float borderBottom = 0.0f;
     float borderLeft = 0.0f;
+
+    std::optional<Graphics::Color> backgroundColor;
+    std::optional<Graphics::Color> borderColor;
 
     float minWidth = 0.0f;
     float maxWidth = FLT_MAX;

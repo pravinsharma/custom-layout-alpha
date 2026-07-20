@@ -71,9 +71,38 @@ RenderCommandList buildRenderTree(const vkapp::Layout::LayoutNode& node)
         return commands;
     }
 
+    const vkapp::Layout::Rect& rect = node.computedRect;
+    const float bt = node.box.borderTop;
+    const float br = node.box.borderRight;
+    const float bb = node.box.borderBottom;
+    const float bl = node.box.borderLeft;
+
+    if (node.borderColor.has_value() && (bt > 0.0f || br > 0.0f || bb > 0.0f || bl > 0.0f)) {
+        RenderCommand border;
+        border.type = RenderCommand::Type::Rect;
+        border.rect = rect;
+        border.color = linearize(*node.borderColor);
+        border.layer = static_cast<int32_t>(node.order);
+        commands.push_back(border);
+    }
+
+    if (node.backgroundColor.has_value()) {
+        RenderCommand bg;
+        bg.type = RenderCommand::Type::Rect;
+        bg.rect = {
+            rect.x + bl,
+            rect.y + bt,
+            std::max(0.0f, rect.width - bl - br),
+            std::max(0.0f, rect.height - bt - bb)
+        };
+        bg.color = linearize(*node.backgroundColor);
+        bg.layer = static_cast<int32_t>(node.order);
+        commands.push_back(bg);
+    }
+
     RenderCommand cmd;
     cmd.type = RenderCommand::Type::Rect;
-    cmd.rect = node.computedRect;
+    cmd.rect = rect;
     cmd.color = linearize(node.color.value_or(colorFromDepthAndName(0, node.name)));
     cmd.layer = static_cast<int32_t>(node.order);
     commands.push_back(cmd);

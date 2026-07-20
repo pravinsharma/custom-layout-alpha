@@ -31,6 +31,8 @@ struct LayoutNode {
     float aspectRatio = 0.0f;
 
     std::optional<Graphics::Color> color;
+    std::optional<Graphics::Color> backgroundColor;
+    std::optional<Graphics::Color> borderColor;
 
     LayoutNode* parent = nullptr;
 

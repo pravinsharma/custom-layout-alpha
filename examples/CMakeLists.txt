@@ -8,6 +8,7 @@ add_executable(flex-example-07-flex-grow-shrink app/07-flex-grow-shrink/main.cpp
 add_executable(flex-example-08-gap app/08-gap/main.cpp)
 add_executable(flex-example-09-min-max-constraints app/09-min-max-constraints/main.cpp)
 add_executable(flex-example-10-complete-dashboard app/10-complete-dashboard/main.cpp)
+add_executable(flex-example-11-typography app/11-typography/main.cpp)
 
 foreach(example
     flex-example-01-basic-row
@@ -20,6 +21,7 @@ foreach(example
     flex-example-08-gap
     flex-example-09-min-max-constraints
     flex-example-10-complete-dashboard
+    flex-example-11-typography
 )
     target_link_libraries(${example} PRIVATE flex_layout_lib)
     add_dependencies(${example} Shaders)

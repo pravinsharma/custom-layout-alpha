@@ -76,6 +76,34 @@ void applyBoxShorthand(float& top, float& right, float& bottom, float& left, con
     }
 }
 
+vkapp::Graphics::Color parseColor(const std::string& value) {
+    std::string s = trim(value);
+    std::transform(s.begin(), s.end(), s.begin(),
+        [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+
+    if (s.starts_with('#')) {
+        s = s.substr(1);
+        if (s.size() == 3) {
+            float r = std::stoi(s.substr(0, 1) + s.substr(0, 1), nullptr, 16) / 255.0f;
+            float g = std::stoi(s.substr(1, 1) + s.substr(1, 1), nullptr, 16) / 255.0f;
+            float b = std::stoi(s.substr(2, 1) + s.substr(2, 1), nullptr, 16) / 255.0f;
+            return {r, g, b, 1.0f};
+        } else if (s.size() == 6) {
+            float r = std::stoi(s.substr(0, 2), nullptr, 16) / 255.0f;
+            float g = std::stoi(s.substr(2, 2), nullptr, 16) / 255.0f;
+            float b = std::stoi(s.substr(4, 2), nullptr, 16) / 255.0f;
+            return {r, g, b, 1.0f};
+        }
+    }
+    return {0.0f, 0.0f, 0.0f, 1.0f};
+}
+
+void applyColorShorthand(std::optional<vkapp::Graphics::Color>& color, const std::string& value) {
+    std::vector<std::string> parts = splitValues(value);
+    if (parts.empty()) return;
+    color = parseColor(parts[0]);
+}
+
 }
 
 void FlexStyle::parseStyle(const std::string& css) {
@@ -193,6 +221,18 @@ void FlexStyle::applyStyle() {
             borderBottom = parseFloatValue(value);
         } else if (propLower == "border-left") {
             borderLeft = parseFloatValue(value);
+        } else if (propLower == "border-color") {
+            applyColorShorthand(borderColor, value);
+        } else if (propLower == "border-top-color") {
+            borderColor = parseColor(value);
+        } else if (propLower == "border-right-color") {
+            borderColor = parseColor(value);
+        } else if (propLower == "border-bottom-color") {
+            borderColor = parseColor(value);
+        } else if (propLower == "border-left-color") {
+            borderColor = parseColor(value);
+        } else if (propLower == "background-color") {
+            backgroundColor = parseColor(value);
         } else if (propLower == "min-width") {
             minWidth = parseFloatValue(value);
         } else if (propLower == "max-width") {
