@@ -453,11 +453,6 @@ int main()
         {
             window.pollEvents();
             renderer.render(commands);
-
-            if (renderer.needsResize())
-            {
-                renderer.resetResize();
-            }
         }
 
         renderer.waitIdle();
