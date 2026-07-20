@@ -154,7 +154,7 @@ NodeRenderInfo getNodeRenderInfo(const vkapp::Layout::LayoutNode& node, int dept
     return info;
 }
 
-RenderCommandList buildRenderTree(const vkapp::Layout::LayoutNode& node, int depth, bool placeholderMode)
+RenderCommandList buildRenderTree(const vkapp::Layout::LayoutNode& node, int depth, bool placeholderMode, const vkapp::Layout::Rect* parentScissor)
 {
     RenderCommandList commands;
     commands.reserve(16);
@@ -171,6 +171,18 @@ RenderCommandList buildRenderTree(const vkapp::Layout::LayoutNode& node, int dep
     const bool isCard = node.name.find("card") != std::string::npos;
     const bool isLeaf = node.children.empty();
 
+    vkapp::Layout::Rect currentScissor = parentScissor ? *parentScissor : vkapp::Layout::Rect{};
+    if (node.overflow == Layout::Overflow::Hidden) {
+        currentScissor = rect;
+    }
+
+    auto applyScissor = [&](RenderCommand& cmd) {
+        if (currentScissor.width > 0.0f && currentScissor.height > 0.0f) {
+            cmd.scissor = currentScissor;
+            cmd.hasScissor = true;
+        }
+    };
+
     if (node.borderColor.has_value() && (bt > 0.0f || br > 0.0f || bb > 0.0f || bl > 0.0f)) {
         RenderCommand border;
         border.type = RenderCommand::Type::Rect;
@@ -179,6 +191,7 @@ RenderCommandList buildRenderTree(const vkapp::Layout::LayoutNode& node, int dep
         border.layer = static_cast<int32_t>(node.order);
         border.opacity = node.opacity;
         border.zIndex = node.positioning.zIndex;
+        applyScissor(border);
         commands.push_back(border);
     }
 
@@ -195,6 +208,7 @@ RenderCommandList buildRenderTree(const vkapp::Layout::LayoutNode& node, int dep
         bg.layer = static_cast<int32_t>(node.order);
         bg.opacity = node.opacity;
         bg.zIndex = node.positioning.zIndex;
+        applyScissor(bg);
         commands.push_back(bg);
     }
 
@@ -232,10 +246,11 @@ RenderCommandList buildRenderTree(const vkapp::Layout::LayoutNode& node, int dep
     cmd.layer = static_cast<int32_t>(node.order);
     cmd.opacity = node.opacity;
     cmd.zIndex = node.positioning.zIndex;
+    applyScissor(cmd);
     commands.push_back(cmd);
 
     for (const auto* child : node.children) {
-        auto childCommands = buildRenderTree(*child, depth + 1, placeholderMode);
+        auto childCommands = buildRenderTree(*child, depth + 1, placeholderMode, &currentScissor);
         commands.insert(commands.end(), childCommands.begin(), childCommands.end());
     }
 

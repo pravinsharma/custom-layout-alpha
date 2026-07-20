@@ -177,6 +177,27 @@ void FlexStyle::applyStyle() {
             else if (valueLower == "center") alignContent = AlignContent::Center;
             else if (valueLower == "space-between") alignContent = AlignContent::SpaceBetween;
             else if (valueLower == "space-around") alignContent = AlignContent::SpaceAround;
+        } else if (propLower == "flex") {
+            if (valueLower == "none") {
+                flexGrow = 0.0f;
+                flexShrink = 1.0f;
+                flexBasis = 0.0f;
+            } else if (valueLower == "auto") {
+                flexGrow = 1.0f;
+                flexShrink = 1.0f;
+                flexBasis = 0.0f;
+            } else {
+                std::vector<std::string> parts = splitValues(value);
+                if (parts.size() == 1 && parts[0] != "auto") {
+                    flexGrow = parseFloatValue(parts[0]);
+                    flexShrink = 1.0f;
+                    flexBasis = 0.0f;
+                } else if (parts.size() >= 2) {
+                    flexGrow = parseFloatValue(parts[0]);
+                    flexShrink = parseFloatValue(parts[1]);
+                    flexBasis = parts.size() > 2 ? parseFloatValue(parts[2]) : 0.0f;
+                }
+            }
         } else if (propLower == "flex-grow") {
             flexGrow = parseFloatValue(value);
         } else if (propLower == "flex-shrink") {
@@ -255,6 +276,11 @@ void FlexStyle::applyStyle() {
             zIndex = std::stoi(value);
         } else if (propLower == "opacity") {
             opacity = std::stof(value);
+        } else if (propLower == "overflow") {
+            if (valueLower == "hidden") overflow = Overflow::Hidden;
+            else if (valueLower == "scroll") overflow = Overflow::Scroll;
+            else if (valueLower == "auto") overflow = Overflow::Auto;
+            else overflow = Overflow::Visible;
         }
     }
 }

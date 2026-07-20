@@ -130,21 +130,7 @@ private:
         }
 
         if (!styleStr.empty()) {
-            node->flex.parseStyle(styleStr);
-            if (node->flex.cssWidth > 0.0f) {
-                node->explicitWidth = node->flex.cssWidth;
-                node->hasExplicitWidth = true;
-            }
-            if (node->flex.cssHeight > 0.0f) {
-                node->explicitHeight = node->flex.cssHeight;
-                node->hasExplicitHeight = true;
-            }
-
-            std::string styleLower = toLower(styleStr);
-            if (styleLower.find("display:flex") != std::string::npos ||
-                styleLower.find("display: block") != std::string::npos) {
-                node->isFlexContainer = true;
-            }
+            node->inlineStyle = styleStr;
         }
 
         if (!selfClosing) {
@@ -182,6 +168,97 @@ private:
 HtmlTree parseHtml(const std::string& html) {
     HtmlParser parser;
     return parser.parse(html);
+}
+
+Stylesheet parseCss(const std::string& css) {
+    Stylesheet result;
+
+    size_t pos = 0;
+    while (pos < css.size()) {
+        size_t openBrace = css.find('{', pos);
+        if (openBrace == std::string::npos) break;
+
+        size_t closeBrace = css.find('}', openBrace);
+        if (closeBrace == std::string::npos) break;
+
+        std::string selector = trim(css.substr(pos, openBrace - pos));
+        std::string body = trim(css.substr(openBrace + 1, closeBrace - openBrace - 1));
+
+        if (!selector.empty() && !body.empty()) {
+            std::string className = selector;
+            if (!className.empty() && className[0] == '.') {
+                className = className.substr(1);
+            }
+            result[className] = body;
+        }
+
+        pos = closeBrace + 1;
+    }
+
+    return result;
+}
+
+void applyCss(LayoutNode& root, const Stylesheet& stylesheet) {
+    std::function<void(LayoutNode&)> apply = [&](LayoutNode& node) {
+        if (!node.name.empty()) {
+            size_t start = 0;
+            size_t end = node.name.find(' ');
+            if (end == std::string::npos) {
+                auto it = stylesheet.find(node.name);
+                if (it != stylesheet.end()) {
+                    node.flex.parseStyle(it->second);
+                }
+            } else {
+                while (start < node.name.size()) {
+                    end = node.name.find(' ', start);
+                    if (end == std::string::npos) end = node.name.size();
+                    std::string className = node.name.substr(start, end - start);
+                    auto it = stylesheet.find(className);
+                    if (it != stylesheet.end()) {
+                        node.flex.parseStyle(it->second);
+                    }
+                    start = end + 1;
+                }
+            }
+        }
+
+        if (node.flex.cssWidth > 0.0f) {
+            node.explicitWidth = node.flex.cssWidth;
+            node.hasExplicitWidth = true;
+        }
+        if (node.flex.cssHeight > 0.0f) {
+            node.explicitHeight = node.flex.cssHeight;
+            node.hasExplicitHeight = true;
+        }
+
+        if (node.flex.display == Display::Flex || node.flex.display == Display::Block) {
+            node.isFlexContainer = true;
+        }
+
+        node.overflow = node.flex.overflow;
+
+        if (!node.inlineStyle.empty()) {
+            node.flex.parseStyle(node.inlineStyle);
+            if (node.flex.cssWidth > 0.0f) {
+                node.explicitWidth = node.flex.cssWidth;
+                node.hasExplicitWidth = true;
+            }
+            if (node.flex.cssHeight > 0.0f) {
+                node.explicitHeight = node.flex.cssHeight;
+                node.hasExplicitHeight = true;
+            }
+
+            if (node.flex.display == Display::Flex || node.flex.display == Display::Block) {
+                node.isFlexContainer = true;
+            }
+        }
+
+        for (auto* child : node.children) {
+            apply(*child);
+        }
+    };
+
+    apply(root);
 }
 
 } // namespace vkapp::Layout

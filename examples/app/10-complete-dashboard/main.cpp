@@ -12,16 +12,16 @@ using namespace vkapp::Layout;
 
 int main()
 {
-    try {
+    try
+    {
         vkapp::Core::EventDispatcher dispatcher;
-        vkapp::Core::Window window({
-            .width = 800,
-            .height = 600,
-            .title = "Flex Example: 10-complete-dashboard",
-            .resizable = true
-        });
+        vkapp::Core::Window window({.width = 800,
+                                    .height = 600,
+                                    .title = "Flex Example: 10-complete-dashboard",
+                                    .resizable = true});
 
-        if (!window.initialize(dispatcher)) {
+        if (!window.initialize(dispatcher))
+        {
             return EXIT_FAILURE;
         }
 
@@ -132,9 +132,10 @@ int main()
 
         std::vector<LayoutNode> cards;
         cards.reserve(4);
-        for (int i = 0; i < 4; ++i) {
+        for (int i = 0; i < 4; ++i)
+        {
             cards.emplace_back("card-" + std::to_string(i + 1));
-            auto& card = cards.back();
+            auto &card = cards.back();
             card.flex.parseStyle("flex-grow: 1; flex-basis: 120px;");
             card.explicitHeight = 100.0f;
             card.hasExplicitHeight = true;
@@ -184,7 +185,8 @@ int main()
         auto commands = vkapp::Graphics::buildRenderTree(root);
 
         std::cout << "Computed layout:\n";
-        for (const auto& cmd : commands) {
+        for (const auto &cmd : commands)
+        {
             std::cout << "  " << cmd.rect.x << ", " << cmd.rect.y << " "
                       << cmd.rect.width << "x" << cmd.rect.height << "\n";
         }
@@ -193,24 +195,23 @@ int main()
         std::cout << vkapp::Layout::LayoutDumper::dumpTree(root);
 
         vkapp::Graphics::VulkanRenderer renderer(window.getHandle());
-        if (!renderer.initialize()) {
+        if (!renderer.initialize())
+        {
             std::cerr << "Failed to initialize Vulkan renderer\n";
             return EXIT_FAILURE;
         }
 
         std::cout << "\nRendering... Close the window to exit.\n";
 
-        while (!window.shouldClose()) {
-            window.pollEvents();
-            renderer.render(commands);
-
-            if (renderer.needsResize()) {
-                renderer.resetResize();
-            }
-        }
+        // while (!window.shouldClose()) {
+        window.pollEvents();
+        renderer.render(commands);
+        //}
 
         renderer.waitIdle();
-    } catch (const std::exception& e) {
+    }
+    catch (const std::exception &e)
+    {
         std::cerr << "Unhandled exception: " << e.what() << "\n";
         return EXIT_FAILURE;
     }

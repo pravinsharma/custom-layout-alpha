@@ -29,6 +29,9 @@ struct RenderCommand {
     int32_t layer = 0;
     float opacity = 1.0f;
     int32_t zIndex = 0;
+
+    vkapp::Layout::Rect scissor{};
+    bool hasScissor = false;
 };
 
 using RenderCommandList = std::vector<RenderCommand>;

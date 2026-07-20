@@ -238,6 +238,20 @@ void VulkanRenderer::render(const RenderCommandList& commands)
     for (const auto& cmd : commands) {
         if (cmd.type != RenderCommand::Type::Rect) continue;
 
+        if (cmd.hasScissor) {
+            VkRect2D nodeScissor = {};
+            nodeScissor.offset.x = static_cast<int32_t>(cmd.scissor.x);
+            nodeScissor.offset.y = static_cast<int32_t>(cmd.scissor.y);
+            nodeScissor.extent.width = static_cast<uint32_t>(std::max(0.0f, cmd.scissor.width));
+            nodeScissor.extent.height = static_cast<uint32_t>(std::max(0.0f, cmd.scissor.height));
+            vkCmdSetScissor(m_commandBuffers[imageIndex], 0, 1, &nodeScissor);
+        } else {
+            VkRect2D fullScissor = {};
+            fullScissor.offset = {0, 0};
+            fullScissor.extent = m_extent;
+            vkCmdSetScissor(m_commandBuffers[imageIndex], 0, 1, &fullScissor);
+        }
+
         float x = cmd.rect.x;
         float y = cmd.rect.y;
         float w = cmd.rect.width;

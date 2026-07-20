@@ -32,10 +32,13 @@ struct LayoutNode {
     uint32_t order = 0;
     float aspectRatio = 0.0f;
     float opacity = 1.0f;
+    Overflow overflow = Overflow::Visible;
 
     std::optional<Graphics::Color> color;
     std::optional<Graphics::Color> backgroundColor;
     std::optional<Graphics::Color> borderColor;
+
+    std::string inlineStyle;
 
     LayoutNode* parent = nullptr;
 

@@ -24,83 +24,169 @@ int main()
             return EXIT_FAILURE;
         }
 
-        auto root = parseHtml(R"(
-            <body class="body" width="800" height="900"
-                  style="display:flex; flex-direction:column; gap:20px; padding:24px; align-items:stretch; background-color:#FAFAFA;">
-              <div class="hero"
-                   style="display:flex; flex-direction:column; gap:8px; padding:32px; background-color:#FFFFFF; border-color:#E3E8ED;">
-                <div class="hero-h1" style="flex-grow:0; height:40px;"></div>
-                <div class="hero-body" style="flex-grow:0; height:24px;"></div>
+        double lastInteractionTime = glfwGetTime();
+
+        dispatcher.addListener([&](const vkapp::Core::Event& event) -> bool {
+            if (event.isInCategory(vkapp::Core::EventCategory::Input))
+            {
+                lastInteractionTime = glfwGetTime();
+            }
+            return false;
+        });
+
+        auto rootCss = parseCss(R"(
+            body {
+                display: flex;
+                flex-direction: column;
+                background-color: #FAFAFA;
+                margin: 0;
+                padding: 24px;
+                gap: 20px;
+            }
+            .hero {
+                display: flex;
+                flex-direction: column;
+                padding: 32px;
+                background-color: #FFFFFF;
+                border-width: 1px;
+                border-color: #E2E8F0;
+                border-radius: 8px;
+                gap: 8px;
+            }
+            .section {
+                display: flex;
+                flex-direction: column;
+                padding: 20px;
+                border-width: 1px;
+                border-color: #E2E8F0;
+                border-radius: 8px;
+                gap: 12px;
+                overflow: hidden;
+            }
+            .section-1 {
+                background-color: #E6FFFA;
+            }
+            .section-2 {
+                background-color: #FFFBEB;
+            }
+            .section-3 {
+                background-color: #F0FFF4;
+            }
+            .section-label {
+                height: 24px;
+            }
+            .row {
+                display: flex;
+                flex-direction: row;
+                gap: 24px;
+                overflow: hidden;
+            }
+            .col {
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+                flex: 1;
+            }
+            .card {
+                display: flex;
+                flex-direction: column;
+                padding: 14px;
+                background-color: #F7FAFC;
+                border-width: 1px;
+                border-color: #E2E8F0;
+                border-radius: 6px;
+                gap: 6px;
+            }
+            .card-label {
+                height: 14px;
+            }
+            .heading1 {
+                height: 36px;
+            }
+            .heading2 {
+                height: 28px;
+            }
+            .heading3 {
+                height: 24px;
+            }
+            .body-text {
+                height: 22px;
+            }
+            .caption-text {
+                height: 20px;
+            }
+            .mono-text {
+                height: 20px;
+            }
+        )");
+
+        auto rootHtml = parseHtml(R"(
+            <body class="body" width="800" height="900">
+              <div class="hero">
+                <div class="heading1">Typography Design Essentials</div>
+                <div class="body-text">Good type. Better design.</div>
               </div>
-              <section class="section-1"
-                       style="display:flex; flex-direction:column; gap:12px; padding:20px; align-items:stretch; background-color:#FFFFFF; border-color:#E3E8ED;">
-                <div class="label-1" style="flex-grow:0; height:26px;">Typography</div>
-                <div class="row-1"
-                     style="display:flex; flex-direction:row; gap:24px; align-items:stretch;">
-                  <div class="card-1a"
-                       style="display:flex; flex-direction:column; gap:4px; padding:16px; flex-grow:1; height:92px; background-color:#F7F9FB; border-color:#E3E8ED;">
-                    <div class="card-1a-label" style="flex-grow:0; height:16px;"></div>
-                    <div class="card-1a-text" style="flex-grow:0; height:40px;"></div>
+
+              <div class="section section-1">
+                <div class="section-label">01  Font Families</div>
+                <div class="row">
+                  <div class="card">
+                    <div class="card-label">Roboto — Sans Serif</div>
+                    <div class="heading1">The quick brown fox</div>
                   </div>
-                  <div class="card-1b"
-                       style="display:flex; flex-direction:column; gap:4px; padding:16px; flex-grow:1; height:76px; background-color:#F7F9FB; border-color:#E3E8ED;">
-                    <div class="card-1b-label" style="flex-grow:0; height:16px;"></div>
-                    <div class="card-1b-text" style="flex-grow:0; height:24px;"></div>
+                  <div class="card">
+                    <div class="card-label">Open Sans — Humanist</div>
+                    <div class="body-text">The quick brown fox</div>
                   </div>
-                  <div class="card-1c"
-                       style="display:flex; flex-direction:column; gap:4px; padding:16px; flex-grow:1; height:76px; background-color:#F7F9FB; border-color:#E3E8ED;">
-                    <div class="card-1c-label" style="flex-grow:0; height:16px;"></div>
-                    <div class="card-1c-text" style="flex-grow:0; height:24px;"></div>
+                  <div class="card">
+                    <div class="card-label">Times New Roman — Serif</div>
+                    <div class="body-text" style="font-family:'Times New Roman';">The quick brown fox</div>
                   </div>
-                  <div class="card-1d"
-                       style="display:flex; flex-direction:column; gap:4px; padding:16px; flex-grow:1; height:76px; background-color:#F7F9FB; border-color:#E3E8ED;">
-                    <div class="card-1d-label" style="flex-grow:0; height:16px;"></div>
-                    <div class="card-1d-text" style="flex-grow:0; height:24px;"></div>
+                  <div class="card">
+                    <div class="card-label">Courier New — Monospace</div>
+                    <div class="mono-text">The quick brown fox</div>
                   </div>
                 </div>
-              </section>
-              <section class="section-2"
-                       style="display:flex; flex-direction:column; gap:12px; padding:20px; align-items:stretch; background-color:#FFFFFF; border-color:#E3E8ED;">
-                <div class="label-2" style="flex-grow:0; height:26px;">Scale</div>
-                <div class="col-2"
-                     style="display:flex; flex-direction:column; gap:8px; align-items:stretch;">
-                  <div class="h1" style="flex-grow:0; height:40px;">Heading 1</div>
-                  <div class="h2" style="flex-grow:0; height:32px;">Heading 2</div>
-                  <div class="h3" style="flex-grow:0; height:26px;">Heading 3</div>
-                  <div class="body-text" style="flex-grow:0; height:24px;">Body text</div>
-                  <div class="caption" style="flex-grow:0; height:20px;">Caption</div>
-                  <div class="mono" style="flex-grow:0; height:24px;">Mono</div>
+              </div>
+
+              <div class="section section-2">
+                <div class="section-label">02  Type Scale</div>
+                <div class="col">
+                  <div class="heading1">Heading 1 — 32px Bold</div>
+                  <div class="heading2">Heading 2 — 22px Medium</div>
+                  <div class="heading3">Heading 3 — 18px Condensed Bold</div>
+                  <div class="body-text">Body — 16px Open Sans Regular. Typography is the art and technique of arranging type to make written language legible, readable and visually appealing.</div>
+                  <div class="caption-text">Caption — 13px Open Sans Light. Used for secondary information and labels.</div>
+                  <div class="mono-text">Mono — 16px Courier New. var x = 42; let name = "VePL";</div>
                 </div>
-              </section>
-              <section class="section-3"
-                       style="display:flex; flex-direction:column; gap:12px; padding:20px; align-items:stretch; background-color:#FFFFFF; border-color:#E3E8ED;">
-                <div class="label-3" style="flex-grow:0; height:26px;">Cards</div>
-                <div class="row-3"
-                     style="display:flex; flex-direction:row; gap:24px; align-items:stretch;">
-                  <div class="card-3a"
-                       style="display:flex; flex-direction:column; gap:4px; padding:16px; flex-grow:1; height:72px; background-color:#F7F9FB; border-color:#E3E8ED;">
-                    <div class="card-3a-label" style="flex-grow:0; height:16px;"></div>
-                    <div class="card-3a-text" style="flex-grow:0; height:20px;"></div>
+              </div>
+
+              <div class="section section-3">
+                <div class="section-label">03  Font Weights (Open Sans)</div>
+                <div class="row">
+                  <div class="card">
+                    <div class="card-label">Light (300)</div>
+                    <div class="caption-text" style="font-weight:300;">Aa Bb Cc</div>
                   </div>
-                  <div class="card-3b"
-                       style="display:flex; flex-direction:column; gap:4px; padding:16px; flex-grow:1; height:76px; background-color:#F7F9FB; border-color:#E3E8ED;">
-                    <div class="card-3b-label" style="flex-grow:0; height:16px;"></div>
-                    <div class="card-3b-text" style="flex-grow:0; height:24px;"></div>
+                  <div class="card">
+                    <div class="card-label">Regular (400)</div>
+                    <div class="body-text" style="font-weight:400;">Aa Bb Cc</div>
                   </div>
-                  <div class="card-3c"
-                       style="display:flex; flex-direction:column; gap:4px; padding:16px; flex-grow:1; height:76px; background-color:#F7F9FB; border-color:#E3E8ED;">
-                    <div class="card-3c-label" style="flex-grow:0; height:16px;"></div>
-                    <div class="card-3c-text" style="flex-grow:0; height:24px;"></div>
+                  <div class="card">
+                    <div class="card-label">Bold (700)</div>
+                    <div class="body-text" style="font-weight:700;">Aa Bb Cc</div>
                   </div>
                 </div>
-              </section>
+              </div>
             </body>
         )");
 
-        vkapp::Layout::FlexLayoutEngine engine;
-        engine.computeLayout(*root, 800.0f, 900.0f);
+        applyCss(*rootHtml, rootCss);
 
-        auto commands = vkapp::Graphics::buildRenderTree(*root, 0, true);
+        vkapp::Layout::FlexLayoutEngine engine;
+        engine.computeLayout(*rootHtml, 800.0f, 900.0f);
+
+        auto commands = vkapp::Graphics::buildRenderTree(*rootHtml, 0, true);
 
         std::cout << "Computed layout:\n";
         for (const auto &cmd : commands)
@@ -110,8 +196,8 @@ int main()
         }
 
         std::cout << "\nLayout dump:\n";
-        std::cout << vkapp::Layout::LayoutDumper::dumpTree(*root, {.includeRenderXray = true,
-                                                                   .placeholderMode = true});
+        std::cout << vkapp::Layout::LayoutDumper::dumpTree(*rootHtml, {.includeRenderXray = true,
+                                                                       .placeholderMode = true});
 
         vkapp::Graphics::VulkanRenderer renderer(window.getHandle());
         if (!renderer.initialize())
@@ -126,6 +212,11 @@ int main()
         {
             window.pollEvents();
             renderer.render(commands);
+
+            if (glfwGetTime() - lastInteractionTime > 4.0)
+            {
+                glfwSetWindowShouldClose(window.getHandle(), GLFW_TRUE);
+            }
         }
 
         renderer.waitIdle();

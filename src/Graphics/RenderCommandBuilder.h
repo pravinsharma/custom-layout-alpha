@@ -8,7 +8,7 @@
 
 namespace vkapp::Graphics {
 
-RenderCommandList buildRenderTree(const vkapp::Layout::LayoutNode& node, int depth = 0, bool placeholderMode = false);
+RenderCommandList buildRenderTree(const vkapp::Layout::LayoutNode& node, int depth = 0, bool placeholderMode = false, const vkapp::Layout::Rect* parentScissor = nullptr);
 
 struct NodeRenderInfo {
     bool isCard = false;

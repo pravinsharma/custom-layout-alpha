@@ -11,16 +11,16 @@ using namespace vkapp::Layout;
 
 int main()
 {
-    try {
+    try
+    {
         vkapp::Core::EventDispatcher dispatcher;
-        vkapp::Core::Window window({
-            .width = 600,
-            .height = 200,
-            .title = "Flex Example: 04-justify-content",
-            .resizable = true
-        });
+        vkapp::Core::Window window({.width = 600,
+                                    .height = 200,
+                                    .title = "Flex Example: 04-justify-content",
+                                    .resizable = true});
 
-        if (!window.initialize(dispatcher)) {
+        if (!window.initialize(dispatcher))
+        {
             return EXIT_FAILURE;
         }
 
@@ -69,7 +69,8 @@ int main()
         auto commands = vkapp::Graphics::buildRenderTree(root);
 
         std::cout << "Computed layout:\n";
-        for (const auto& cmd : commands) {
+        for (const auto &cmd : commands)
+        {
             std::cout << "  " << cmd.rect.x << ", " << cmd.rect.y << " "
                       << cmd.rect.width << "x" << cmd.rect.height << "\n";
         }
@@ -78,24 +79,23 @@ int main()
         std::cout << vkapp::Layout::LayoutDumper::dumpTree(root);
 
         vkapp::Graphics::VulkanRenderer renderer(window.getHandle());
-        if (!renderer.initialize()) {
+        if (!renderer.initialize())
+        {
             std::cerr << "Failed to initialize Vulkan renderer\n";
             return EXIT_FAILURE;
         }
 
         std::cout << "\nRendering... Close the window to exit.\n";
 
-        while (!window.shouldClose()) {
-            window.pollEvents();
-            renderer.render(commands);
-
-            if (renderer.needsResize()) {
-                renderer.resetResize();
-            }
-        }
+        // while (!window.shouldClose()) {
+        window.pollEvents();
+        renderer.render(commands);
+        //}
 
         renderer.waitIdle();
-    } catch (const std::exception& e) {
+    }
+    catch (const std::exception &e)
+    {
         std::cerr << "Unhandled exception: " << e.what() << "\n";
         return EXIT_FAILURE;
     }

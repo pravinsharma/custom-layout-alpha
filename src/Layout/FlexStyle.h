@@ -55,12 +55,19 @@ enum class AlignContent : uint32_t {
     SpaceAround
 };
 
+enum class Overflow : uint32_t {
+    Visible = 0,
+    Hidden,
+    Scroll,
+    Auto
+};
+
 struct FlexStyle {
     Display display = Display::Flex;
     FlexDirection direction = FlexDirection::Row;
     FlexWrap wrap = FlexWrap::NoWrap;
     JustifyContent justify = JustifyContent::FlexStart;
-    AlignItems alignItems = AlignItems::FlexStart;
+    AlignItems alignItems = AlignItems::Stretch;
     AlignContent alignContent = AlignContent::FlexStart;
 
     float flexGrow = 0.0f;
@@ -99,6 +106,8 @@ struct FlexStyle {
     Position position = Position::Static;
     int zIndex = 0;
     float opacity = 1.0f;
+
+    Overflow overflow = Overflow::Visible;
 
     std::string style;
 
