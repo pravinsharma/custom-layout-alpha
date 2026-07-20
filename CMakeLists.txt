@@ -50,6 +50,7 @@ set(FLEX_APP_SOURCES
     src/Layout/FlexLayoutEngine.cpp
     src/Layout/LayoutDumper.cpp
     src/Layout/FlexTests.cpp
+    src/Layout/HtmlParser.cpp
     src/Graphics/RenderCommandBuilder.cpp
     src/Graphics/VulkanRenderer.cpp
 )

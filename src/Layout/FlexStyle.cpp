@@ -183,6 +183,10 @@ void FlexStyle::applyStyle() {
             flexShrink = parseFloatValue(value);
         } else if (propLower == "flex-basis") {
             flexBasis = parseFloatValue(value);
+        } else if (propLower == "width") {
+            cssWidth = parseFloatValue(value);
+        } else if (propLower == "height") {
+            cssHeight = parseFloatValue(value);
         } else if (propLower == "gap") {
             float g = parseFloatValue(value);
             gapRow = g;

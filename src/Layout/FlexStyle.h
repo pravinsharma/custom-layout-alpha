@@ -67,6 +67,9 @@ struct FlexStyle {
     float flexShrink = 1.0f;
     float flexBasis = 0.0f;
 
+    float cssWidth = 0.0f;
+    float cssHeight = 0.0f;
+
     float gapRow = 0.0f;
     float gapColumn = 0.0f;
 
