@@ -241,6 +241,9 @@ void FlexLayoutEngine::resolveFlexContainer(LayoutNode& node, float availableWid
     float flexShrinkTotal = 0.0f;
 
     for (auto* child : node.children) {
+        if (!child->isInFlexFlow()) {
+            continue;
+        }
         flexGrowTotal += child->flex.flexGrow;
         flexShrinkTotal += child->flex.flexShrink;
     }
@@ -545,6 +548,10 @@ void FlexLayoutEngine::computeLayout(LayoutNode& node, float availableWidth, flo
     node.backgroundColor = node.flex.backgroundColor;
     node.borderColor = node.flex.borderColor;
 
+    node.positioning.type = node.flex.position;
+    node.positioning.zIndex = node.flex.zIndex;
+    node.opacity = node.flex.opacity;
+
     if (!node.isFlexContainer || node.children.empty()) {
         if (node.computedRect.width <= 0.0f) {
             if (node.hasExplicitWidth) {
@@ -576,7 +583,17 @@ void FlexLayoutEngine::computeLayout(LayoutNode& node, float availableWidth, flo
     resolveFlexContainer(node, contentWidth, contentHeight);
 
     for (auto* child : node.children) {
-        computeLayout(*child, child->computedRect.width, child->computedRect.height);
+        if (child->positioning.type == Position::Absolute || child->positioning.type == Position::Fixed) {
+            float x = node.computedRect.x + node.box.paddingLeft + child->positioning.left;
+            float y = node.computedRect.y + node.box.paddingTop + child->positioning.top;
+            float availW = child->hasExplicitWidth ? child->explicitWidth : std::max(0.0f, contentWidth - child->positioning.left - child->positioning.right);
+            float availH = child->hasExplicitHeight ? child->explicitHeight : std::max(0.0f, contentHeight - child->positioning.top - child->positioning.bottom);
+            computeLayout(*child, availW, availH);
+            child->computedRect.x = x;
+            child->computedRect.y = y;
+        } else {
+            computeLayout(*child, child->computedRect.width, child->computedRect.height);
+        }
     }
 }
 

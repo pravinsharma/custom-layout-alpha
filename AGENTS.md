@@ -25,6 +25,10 @@ ninja -C build
 .\scripts\clean.ps1
 ```
 
+## Documentation
+- Design discussion lives in `docs/discussion/flex-design.md`.
+- Current project roadmap is `docs/ROADMAP.md` (formerly `ROADMAP-FLEX.md`).
+
 ## Conventions
 - CMake targets should link against `glfw` and the Vulkan library resolved in the root `CMakeLists.txt`.
 - Source files live under `src/`.

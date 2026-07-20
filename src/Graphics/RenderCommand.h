@@ -27,6 +27,8 @@ struct RenderCommand {
     Color color{1.0f, 1.0f, 1.0f, 1.0f};
 
     int32_t layer = 0;
+    float opacity = 1.0f;
+    int32_t zIndex = 0;
 };
 
 using RenderCommandList = std::vector<RenderCommand>;

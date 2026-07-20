@@ -3,6 +3,7 @@
 #include "Rect.h"
 #include "BoxModel.h"
 #include "FlexStyle.h"
+#include "Positioning.h"
 #include "../Graphics/RenderCommand.h"
 
 #include <cstdint>
@@ -16,6 +17,7 @@ struct LayoutNode {
     std::string name;
     BoxModel box;
     FlexStyle flex;
+    Positioning positioning;
 
     std::vector<LayoutNode*> children;
 
@@ -29,12 +31,18 @@ struct LayoutNode {
     bool isFlexContainer = false;
     uint32_t order = 0;
     float aspectRatio = 0.0f;
+    float opacity = 1.0f;
 
     std::optional<Graphics::Color> color;
     std::optional<Graphics::Color> backgroundColor;
     std::optional<Graphics::Color> borderColor;
 
     LayoutNode* parent = nullptr;
+
+    bool isInFlexFlow() const
+    {
+        return positioning.type != Position::Absolute && positioning.type != Position::Fixed;
+    }
 
     void addChild(LayoutNode* child)
     {

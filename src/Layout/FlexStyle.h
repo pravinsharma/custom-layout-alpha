@@ -4,6 +4,7 @@
 #include <optional>
 #include <string>
 
+#include "Positioning.h"
 #include "../Graphics/RenderCommand.h"
 
 namespace vkapp::Layout {
@@ -91,6 +92,10 @@ struct FlexStyle {
     float maxWidth = FLT_MAX;
     float minHeight = 0.0f;
     float maxHeight = FLT_MAX;
+
+    Position position = Position::Static;
+    int zIndex = 0;
+    float opacity = 1.0f;
 
     std::string style;
 

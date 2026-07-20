@@ -241,6 +241,16 @@ void FlexStyle::applyStyle() {
             minHeight = parseFloatValue(value);
         } else if (propLower == "max-height") {
             maxHeight = parseFloatValue(value);
+        } else if (propLower == "position") {
+            if (valueLower == "static") position = Position::Static;
+            else if (valueLower == "relative") position = Position::Relative;
+            else if (valueLower == "absolute") position = Position::Absolute;
+            else if (valueLower == "fixed") position = Position::Fixed;
+            else if (valueLower == "sticky") position = Position::Sticky;
+        } else if (propLower == "z-index") {
+            zIndex = std::stoi(value);
+        } else if (propLower == "opacity") {
+            opacity = std::stof(value);
         }
     }
 }

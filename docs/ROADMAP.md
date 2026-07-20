@@ -47,6 +47,15 @@ Goal: a complete, spec-faithful CSS flexbox layout system for versatile GUI deve
   - [x] Zero-size child handling
 - [x] Compare computed outputs against expected CSS flexbox behavior
 
+## Phase 3.5 — Positioning, Z-Index, and Opacity
+- [x] `src/Layout/Positioning.h` — `Position` enum (`Static`, `Relative`, `Absolute`, `Fixed`, `Sticky`) and `Positioning` struct (`type`, `top/right/bottom/left`, `zIndex`)
+- [x] `src/Layout/FlexStyle.h` — added `position`, `zIndex`, `opacity` fields for CSS parsing
+- [x] `src/Layout/LayoutNode.h` — added `Positioning positioning`, `float opacity`, and `isInFlexFlow()` helper
+- [x] `src/Layout/FlexStyle.cpp` — CSS property parsing for `position`, `z-index`, and `opacity`
+- [x] `src/Layout/FlexLayoutEngine.cpp` — copies positioning/opacity from `FlexStyle` to `LayoutNode` in `computeLayout()`; `Absolute`/`Fixed` children excluded from `flexGrow`/`flexShrink` totals and positioned relative to containing block
+- [x] `src/Graphics/RenderCommand.h` — added `float opacity` and `int32_t zIndex`
+- [x] `src/Graphics/RenderCommandBuilder.cpp` — propagates `opacity` and `zIndex` from `LayoutNode` to `RenderCommand`
+
 ## Phase 4 — Future (out of scope for now)
 - [x] Vulkan renderer integration for colored rects
   - [x] `src/Graphics/VulkanRenderer.h/.cpp` — Vulkan instance, device, swapchain, render pass, pipeline, framebuffers, command buffers, sync objects
@@ -57,6 +66,8 @@ Goal: a complete, spec-faithful CSS flexbox layout system for versatile GUI deve
 - [ ] Dirty layout / incremental recompute
 - [ ] Animation / transition hooks
 - [ ] Grid, block, inline layout modes
+- [ ] `StackingContext` class for explicit layering and sorting
+- [ ] Transform support
 
 ---
 

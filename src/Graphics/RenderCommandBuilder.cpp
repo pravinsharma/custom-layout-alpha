@@ -83,6 +83,8 @@ RenderCommandList buildRenderTree(const vkapp::Layout::LayoutNode& node)
         border.rect = rect;
         border.color = linearize(*node.borderColor);
         border.layer = static_cast<int32_t>(node.order);
+        border.opacity = node.opacity;
+        border.zIndex = node.positioning.zIndex;
         commands.push_back(border);
     }
 
@@ -97,6 +99,8 @@ RenderCommandList buildRenderTree(const vkapp::Layout::LayoutNode& node)
         };
         bg.color = linearize(*node.backgroundColor);
         bg.layer = static_cast<int32_t>(node.order);
+        bg.opacity = node.opacity;
+        bg.zIndex = node.positioning.zIndex;
         commands.push_back(bg);
     }
 
@@ -105,6 +109,8 @@ RenderCommandList buildRenderTree(const vkapp::Layout::LayoutNode& node)
     cmd.rect = rect;
     cmd.color = linearize(node.color.value_or(colorFromDepthAndName(0, node.name)));
     cmd.layer = static_cast<int32_t>(node.order);
+    cmd.opacity = node.opacity;
+    cmd.zIndex = node.positioning.zIndex;
     commands.push_back(cmd);
 
     for (const auto* child : node.children) {
