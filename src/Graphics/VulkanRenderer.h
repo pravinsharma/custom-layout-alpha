@@ -46,7 +46,7 @@ private:
     bool createVertexBuffer();
 
     void cleanupSwapchain();
-    void recreateSwapchain();
+    bool recreateSwapchain();
 
     GLFWwindow* m_window;
     VkInstance m_instance;
@@ -76,6 +76,8 @@ private:
     VkDeviceMemory m_vertexBufferMemory;
 
     bool m_needsResize;
+    uint32_t m_resizeThrottle;
+    VkExtent2D m_pendingExtent;
 };
 
 } // namespace vkapp::Graphics

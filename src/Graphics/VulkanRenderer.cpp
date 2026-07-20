@@ -50,6 +50,8 @@ VulkanRenderer::VulkanRenderer(GLFWwindow* window)
     , m_commandPool(VK_NULL_HANDLE)
     , m_currentFrame(0)
     , m_needsResize(false)
+    , m_resizeThrottle(0)
+    , m_pendingExtent({0, 0})
 {
 }
 
@@ -143,8 +145,30 @@ void VulkanRenderer::shutdown()
 void VulkanRenderer::render(const RenderCommandList& commands)
 {
     if (m_needsResize) {
-        recreateSwapchain();
+        int width = 0;
+        int height = 0;
+        glfwGetFramebufferSize(m_window, &width, &height);
+        if (width > 0 && height > 0) {
+            m_pendingExtent.width = static_cast<uint32_t>(width);
+            m_pendingExtent.height = static_cast<uint32_t>(height);
+            m_resizeThrottle = 2;
+        }
         m_needsResize = false;
+    }
+
+    if (m_resizeThrottle > 0) {
+        --m_resizeThrottle;
+        if (m_resizeThrottle == 0 && m_pendingExtent.width > 0 && m_pendingExtent.height > 0) {
+            if (m_extent.width != m_pendingExtent.width || m_extent.height != m_pendingExtent.height) {
+                if (!recreateSwapchain()) {
+                    m_needsResize = true;
+                }
+            }
+            m_pendingExtent.width = 0;
+            m_pendingExtent.height = 0;
+        }
+        m_currentFrame = (m_currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+        return;
     }
 
     if (m_extent.width == 0 || m_extent.height == 0) {
@@ -152,16 +176,7 @@ void VulkanRenderer::render(const RenderCommandList& commands)
         return;
     }
 
-    if (glfwGetWindowAttrib(m_window, GLFW_ICONIFIED)) {
-        m_currentFrame = (m_currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
-        return;
-    }
-
     while (vkWaitForFences(m_device, 1, &m_inFlightFences[m_currentFrame], VK_TRUE, 1000000) != VK_SUCCESS) {
-        if (m_needsResize) {
-            recreateSwapchain();
-            m_needsResize = false;
-        }
         if (m_extent.width == 0 || m_extent.height == 0) {
             m_currentFrame = (m_currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
             return;
@@ -175,7 +190,10 @@ void VulkanRenderer::render(const RenderCommandList& commands)
                                              VK_NULL_HANDLE, &imageIndex);
 
     if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || result == VK_TIMEOUT) {
-        recreateSwapchain();
+        if (!recreateSwapchain()) {
+            m_currentFrame = (m_currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+            return;
+        }
         m_currentFrame = (m_currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
         return;
     }
@@ -809,7 +827,7 @@ void VulkanRenderer::cleanupSwapchain()
     }
 }
 
-void VulkanRenderer::recreateSwapchain()
+bool VulkanRenderer::recreateSwapchain()
 {
     int width = 0;
     int height = 0;
@@ -818,20 +836,30 @@ void VulkanRenderer::recreateSwapchain()
     if (width == 0 || height == 0) {
         m_extent.width = 0;
         m_extent.height = 0;
-        return;
+        return false;
     }
 
-    vkDeviceWaitIdle(m_device);
+    VkExtent2D newExtent = {static_cast<uint32_t>(width), static_cast<uint32_t>(height)};
+    if (m_extent.width == newExtent.width && m_extent.height == newExtent.height && m_swapchain != VK_NULL_HANDLE) {
+        return true;
+    }
+
+    if (vkDeviceWaitIdle(m_device) != VK_SUCCESS) {
+        return false;
+    }
+
     cleanupSwapchain();
+
+    m_extent = newExtent;
 
     if (!createSwapchain()) {
         std::cerr << "Failed to recreate swapchain\n";
-        return;
+        return false;
     }
 
     if (!createFramebuffers()) {
         std::cerr << "Failed to recreate framebuffers\n";
-        return;
+        return false;
     }
 
     vkFreeCommandBuffers(m_device, m_commandPool,
@@ -841,7 +869,10 @@ void VulkanRenderer::recreateSwapchain()
 
     if (!allocateCommandBuffers()) {
         std::cerr << "Failed to reallocate command buffers after resize\n";
+        return false;
     }
+
+    return true;
 }
 
 bool VulkanRenderer::createVertexBuffer()
