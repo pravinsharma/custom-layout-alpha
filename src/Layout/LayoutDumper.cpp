@@ -34,6 +34,25 @@ std::string LayoutDumper::detectIssues(const LayoutNode& node)
         issues << "[BOX_BLEED] ";
     }
 
+    const float contentLeft = node.computedRect.x + node.box.paddingLeft + node.box.borderLeft;
+    const float contentTop = node.computedRect.y + node.box.paddingTop + node.box.borderTop;
+    const float contentRight = contentLeft + contentWidth;
+    const float contentBottom = contentTop + contentHeight;
+
+    for (const auto* child : node.children) {
+        if (!child->isInFlexFlow()) {
+            continue;
+        }
+        const float childRight = child->computedRect.x + child->computedRect.width;
+        const float childBottom = child->computedRect.y + child->computedRect.height;
+        if (child->computedRect.x < contentLeft - 0.01f ||
+            child->computedRect.y < contentTop - 0.01f ||
+            childRight > contentRight + 0.01f ||
+            childBottom > contentBottom + 0.01f) {
+            issues << "[CHILD_OVERFLOW:" << child->name << "] ";
+        }
+    }
+
     return issues.str();
 }
 

@@ -9,6 +9,8 @@ public:
     void computeLayout(LayoutNode& node, float availableWidth, float availableHeight);
 
 private:
+    void syncBoxModel(LayoutNode& node) const;
+    void measureFlexTree(LayoutNode& node, float availableWidth, float availableHeight);
     void resolveFlexContainer(LayoutNode& node, float availableWidth, float availableHeight);
     void measureNode(LayoutNode& node, float availableWidth, float availableHeight);
     void positionNode(LayoutNode& node, float x, float y, float width, float height);

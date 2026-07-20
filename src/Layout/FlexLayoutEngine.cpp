@@ -26,15 +26,44 @@ float FlexLayoutEngine::resolveCrossAxisSize(const LayoutNode& node) const
 
 float FlexLayoutEngine::estimateIntrinsicSize(const LayoutNode& child) const
 {
-    if (child.hasExplicitWidth || child.hasExplicitHeight) {
+    if (child.hasExplicitWidth && child.hasExplicitHeight) {
         return 0.0f;
     }
-
-    if (child.flex.flexBasis > 0.0f) {
-        return child.flex.flexBasis;
-    }
-
     return 50.0f;
+}
+
+void FlexLayoutEngine::syncBoxModel(LayoutNode& node) const
+{
+    node.box.marginTop = node.flex.marginTop;
+    node.box.marginRight = node.flex.marginRight;
+    node.box.marginBottom = node.flex.marginBottom;
+    node.box.marginLeft = node.flex.marginLeft;
+    node.box.paddingTop = node.flex.paddingTop;
+    node.box.paddingRight = node.flex.paddingRight;
+    node.box.paddingBottom = node.flex.paddingBottom;
+    node.box.paddingLeft = node.flex.paddingLeft;
+    node.box.borderTop = node.flex.borderTop;
+    node.box.borderRight = node.flex.borderRight;
+    node.box.borderBottom = node.flex.borderBottom;
+    node.box.borderLeft = node.flex.borderLeft;
+    node.backgroundColor = node.flex.backgroundColor;
+    node.borderColor = node.flex.borderColor;
+    node.positioning.type = node.flex.position;
+    node.positioning.zIndex = node.flex.zIndex;
+    node.opacity = node.flex.opacity;
+}
+
+void FlexLayoutEngine::measureFlexTree(LayoutNode& node, float availableWidth, float availableHeight)
+{
+    for (auto* child : node.children) {
+        if (child->isFlexContainer) {
+            measureFlexTree(*child, availableWidth, availableHeight);
+            syncBoxModel(*child);
+            measureNode(*child, availableWidth, availableHeight);
+        }
+    }
+    syncBoxModel(node);
+    measureNode(node, availableWidth, availableHeight);
 }
 
 void FlexLayoutEngine::measureNode(LayoutNode& node, float availableWidth, float availableHeight)
@@ -116,12 +145,6 @@ void FlexLayoutEngine::measureNode(LayoutNode& node, float availableWidth, float
     } else {
         node.measuredSize.height = node.explicitHeight;
     }
-
-    node.measuredSize.width += node.box.paddingHorizontal() + node.box.borderHorizontal();
-    node.measuredSize.height += node.box.paddingVertical() + node.box.borderVertical();
-
-    node.measuredSize.width = std::clamp(node.measuredSize.width, node.flex.minWidth, node.flex.maxWidth);
-    node.measuredSize.height = std::clamp(node.measuredSize.height, node.flex.minHeight, node.flex.maxHeight);
 }
 
 void FlexLayoutEngine::positionNode(LayoutNode& node, float x, float y, float width, float height)
@@ -222,11 +245,7 @@ void FlexLayoutEngine::resolveFlexContainer(LayoutNode& node, float availableWid
         return;
     }
 
-    measureNode(node, availableWidth, availableHeight);
-
-    for (auto* child : node.children) {
-        measureNode(*child, availableWidth, availableHeight);
-    }
+    measureFlexTree(node, availableWidth, availableHeight);
 
     const bool row = isRowDirection(node.flex.direction);
     const bool reverse = (node.flex.direction == FlexDirection::RowReverse || node.flex.direction == FlexDirection::ColumnReverse);
@@ -266,11 +285,11 @@ void FlexLayoutEngine::resolveFlexContainer(LayoutNode& node, float availableWid
                 float intrinsic = estimateIntrinsicSize(*child);
                 childMainSize = child->flex.flexBasis > 0.0f ? child->flex.flexBasis : intrinsic;
                 childMainSize = std::clamp(childMainSize, child->flex.minWidth, child->flex.maxWidth);
-                float childMainBorder = row ?
-                    (child->box.paddingHorizontal() + child->box.borderHorizontal()) :
-                    (child->box.paddingVertical() + child->box.borderVertical());
-                childMainSize += childMainBorder;
             }
+            float childMainBorder = row ?
+                (child->box.paddingHorizontal() + child->box.borderHorizontal()) :
+                (child->box.paddingVertical() + child->box.borderVertical());
+            childMainSize += childMainBorder;
 
             float childNaturalCrossSize = 0.0f;
             if (row) {
@@ -393,7 +412,13 @@ void FlexLayoutEngine::resolveFlexContainer(LayoutNode& node, float availableWid
             totalMainBasis += basis;
         }
 
-        float freeSpaceMain = mainAxisSize - gapMain * static_cast<float>(std::max(0, static_cast<int>(line.size()) - 1)) - totalMainBasis;
+        float totalMainBorder = 0.0f;
+        for (size_t idx : line) {
+            auto* child = node.children[idx];
+            totalMainBorder += row ? (child->box.paddingHorizontal() + child->box.borderHorizontal()) : (child->box.paddingVertical() + child->box.borderVertical());
+        }
+
+        float freeSpaceMain = mainAxisSize - gapMain * static_cast<float>(std::max(0, static_cast<int>(line.size()) - 1)) - totalMainBasis - totalMainBorder;
 
         std::vector<float> childMainSizes;
         childMainSizes.reserve(line.size());
@@ -518,11 +543,14 @@ void FlexLayoutEngine::resolveFlexContainer(LayoutNode& node, float availableWid
                           << " h=" << (row ? childCrossSize : childMainSize) << "\n";
             }
 
+            float childMainBorder = row ? (child->box.paddingHorizontal() + child->box.borderHorizontal()) : (child->box.paddingVertical() + child->box.borderVertical());
+            float childMainTotal = childMainSize + childMainBorder;
+
             if (i + 1 < line.size()) {
                 if (reverse) {
-                    currentMain -= childMainSize + gapMain + itemSpacing;
+                    currentMain -= childMainTotal + gapMain + itemSpacing;
                 } else {
-                    currentMain += childMainSize + gapMain + itemSpacing;
+                    currentMain += childMainTotal + gapMain + itemSpacing;
                 }
             }
         }
@@ -533,24 +561,7 @@ void FlexLayoutEngine::resolveFlexContainer(LayoutNode& node, float availableWid
 
 void FlexLayoutEngine::computeLayout(LayoutNode& node, float availableWidth, float availableHeight)
 {
-    node.box.marginTop = node.flex.marginTop;
-    node.box.marginRight = node.flex.marginRight;
-    node.box.marginBottom = node.flex.marginBottom;
-    node.box.marginLeft = node.flex.marginLeft;
-    node.box.paddingTop = node.flex.paddingTop;
-    node.box.paddingRight = node.flex.paddingRight;
-    node.box.paddingBottom = node.flex.paddingBottom;
-    node.box.paddingLeft = node.flex.paddingLeft;
-    node.box.borderTop = node.flex.borderTop;
-    node.box.borderRight = node.flex.borderRight;
-    node.box.borderBottom = node.flex.borderBottom;
-    node.box.borderLeft = node.flex.borderLeft;
-    node.backgroundColor = node.flex.backgroundColor;
-    node.borderColor = node.flex.borderColor;
-
-    node.positioning.type = node.flex.position;
-    node.positioning.zIndex = node.flex.zIndex;
-    node.opacity = node.flex.opacity;
+    syncBoxModel(node);
 
     if (!node.isFlexContainer || node.children.empty()) {
         if (node.computedRect.width <= 0.0f) {
@@ -574,8 +585,12 @@ void FlexLayoutEngine::computeLayout(LayoutNode& node, float availableWidth, flo
         return;
     }
 
-    node.computedRect.width = availableWidth;
-    node.computedRect.height = availableHeight;
+    if (node.computedRect.width <= 0.0f) {
+        node.computedRect.width = availableWidth;
+    }
+    if (node.computedRect.height <= 0.0f) {
+        node.computedRect.height = availableHeight;
+    }
 
     float contentWidth = availableWidth - node.box.paddingHorizontal() - node.box.borderHorizontal();
     float contentHeight = availableHeight - node.box.paddingVertical() - node.box.borderVertical();

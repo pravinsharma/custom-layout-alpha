@@ -60,8 +60,8 @@ struct FlexStyle {
     FlexDirection direction = FlexDirection::Row;
     FlexWrap wrap = FlexWrap::NoWrap;
     JustifyContent justify = JustifyContent::FlexStart;
-    AlignItems alignItems = AlignItems::Stretch;
-    AlignContent alignContent = AlignContent::Stretch;
+    AlignItems alignItems = AlignItems::FlexStart;
+    AlignContent alignContent = AlignContent::FlexStart;
 
     float flexGrow = 0.0f;
     float flexShrink = 1.0f;

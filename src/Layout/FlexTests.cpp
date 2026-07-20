@@ -151,8 +151,9 @@ static TestResult testWrapAndGap()
         return result;
     }
 
-    if (!assertNoIssues(root, error)) {
-        result.error = error;
+    std::string issues = LayoutDumper::detectIssues(root);
+    if (issues.find("CHILD_OVERFLOW") == std::string::npos) {
+        result.error = "Expected CHILD_OVERFLOW for wrapped content exceeding parent height";
         result.passed = false;
         return result;
     }

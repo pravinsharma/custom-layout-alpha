@@ -11,16 +11,16 @@ using namespace vkapp::Layout;
 
 int main()
 {
-    try {
+    try
+    {
         vkapp::Core::EventDispatcher dispatcher;
-        vkapp::Core::Window window({
-            .width = 800,
-            .height = 900,
-            .title = "Flex Example: 11-typography",
-            .resizable = true
-        });
+        vkapp::Core::Window window({.width = 800,
+                                    .height = 900,
+                                    .title = "Flex Example: 11-typography",
+                                    .resizable = true});
 
-        if (!window.initialize(dispatcher)) {
+        if (!window.initialize(dispatcher))
+        {
             return EXIT_FAILURE;
         }
 
@@ -31,6 +31,7 @@ int main()
             gap: 20px;
             padding: 24px;
             background-color: #FAFAFA;
+            align-items: stretch;
         )");
         body.explicitWidth = 800.0f;
         body.explicitHeight = 900.0f;
@@ -45,6 +46,7 @@ int main()
             flex-direction: column;
             gap: 8px;
             padding: 32px;
+            align-items: stretch;
         )");
         hero.isFlexContainer = true;
         hero.backgroundColor = {1.0f, 1.0f, 1.0f, 1.0f};
@@ -71,6 +73,7 @@ int main()
             flex-direction: column;
             gap: 12px;
             padding: 20px;
+            align-items: stretch;
         )");
         section1.isFlexContainer = true;
         section1.backgroundColor = {1.0f, 1.0f, 1.0f, 1.0f};
@@ -87,6 +90,7 @@ int main()
             display: flex;
             flex-direction: row;
             gap: 24px;
+            align-items: stretch;
         )");
         row1.isFlexContainer = true;
 
@@ -97,6 +101,7 @@ int main()
             gap: 4px;
             padding: 16px;
             flex-grow: 1;
+            align-items: stretch;
         )");
         card1a.explicitHeight = 92.0f;
         card1a.hasExplicitHeight = true;
@@ -126,6 +131,7 @@ int main()
             gap: 4px;
             padding: 16px;
             flex-grow: 1;
+            align-items: stretch;
         )");
         card1b.explicitHeight = 76.0f;
         card1b.hasExplicitHeight = true;
@@ -155,6 +161,7 @@ int main()
             gap: 4px;
             padding: 16px;
             flex-grow: 1;
+            align-items: stretch;
         )");
         card1c.explicitHeight = 76.0f;
         card1c.hasExplicitHeight = true;
@@ -184,6 +191,7 @@ int main()
             gap: 4px;
             padding: 16px;
             flex-grow: 1;
+            align-items: stretch;
         )");
         card1d.explicitHeight = 76.0f;
         card1d.hasExplicitHeight = true;
@@ -220,6 +228,7 @@ int main()
             flex-direction: column;
             gap: 12px;
             padding: 20px;
+            align-items: stretch;
         )");
         section2.isFlexContainer = true;
         section2.backgroundColor = {1.0f, 1.0f, 1.0f, 1.0f};
@@ -236,6 +245,7 @@ int main()
             display: flex;
             flex-direction: column;
             gap: 8px;
+            align-items: stretch;
         )");
         col2.isFlexContainer = true;
 
@@ -291,6 +301,7 @@ int main()
             flex-direction: column;
             gap: 12px;
             padding: 20px;
+            align-items: stretch;
         )");
         section3.isFlexContainer = true;
         section3.backgroundColor = {1.0f, 1.0f, 1.0f, 1.0f};
@@ -307,6 +318,7 @@ int main()
             display: flex;
             flex-direction: row;
             gap: 24px;
+            align-items: stretch;
         )");
         row3.isFlexContainer = true;
 
@@ -317,6 +329,7 @@ int main()
             gap: 4px;
             padding: 16px;
             flex-grow: 1;
+            align-items: stretch;
         )");
         card3a.explicitHeight = 72.0f;
         card3a.hasExplicitHeight = true;
@@ -346,6 +359,7 @@ int main()
             gap: 4px;
             padding: 16px;
             flex-grow: 1;
+            align-items: stretch;
         )");
         card3b.explicitHeight = 76.0f;
         card3b.hasExplicitHeight = true;
@@ -375,6 +389,7 @@ int main()
             gap: 4px;
             padding: 16px;
             flex-grow: 1;
+            align-items: stretch;
         )");
         card3c.explicitHeight = 76.0f;
         card3c.hasExplicitHeight = true;
@@ -415,36 +430,40 @@ int main()
         auto commands = vkapp::Graphics::buildRenderTree(body, 0, true);
 
         std::cout << "Computed layout:\n";
-        for (const auto& cmd : commands) {
+        for (const auto &cmd : commands)
+        {
             std::cout << "  " << cmd.rect.x << ", " << cmd.rect.y << " "
                       << cmd.rect.width << "x" << cmd.rect.height << "\n";
         }
 
         std::cout << "\nLayout dump:\n";
-        std::cout << vkapp::Layout::LayoutDumper::dumpTree(body, {
-            .includeRenderXray = true,
-            .placeholderMode = true
-        });
+        std::cout << vkapp::Layout::LayoutDumper::dumpTree(body, {.includeRenderXray = true,
+                                                                  .placeholderMode = true});
 
         vkapp::Graphics::VulkanRenderer renderer(window.getHandle());
-        if (!renderer.initialize()) {
+        if (!renderer.initialize())
+        {
             std::cerr << "Failed to initialize Vulkan renderer\n";
             return EXIT_FAILURE;
         }
 
         std::cout << "\nRendering... Close the window to exit.\n";
 
-        while (!window.shouldClose()) {
+        while (!window.shouldClose())
+        {
             window.pollEvents();
             renderer.render(commands);
 
-            if (renderer.needsResize()) {
+            if (renderer.needsResize())
+            {
                 renderer.resetResize();
             }
         }
 
         renderer.waitIdle();
-    } catch (const std::exception& e) {
+    }
+    catch (const std::exception &e)
+    {
         std::cerr << "Unhandled exception: " << e.what() << "\n";
         return EXIT_FAILURE;
     }
