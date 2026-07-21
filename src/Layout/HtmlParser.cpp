@@ -56,7 +56,9 @@ private:
             while (m_pos < m_html.size() && m_html[m_pos] != '<') ++m_pos;
             std::string text = trim(m_html.substr(start, m_pos - start));
             if (!text.empty()) {
-                return new LayoutNode(text);
+                auto* node = new LayoutNode();
+                node->textContent = text;
+                return node;
             }
             return nullptr;
         }
@@ -143,8 +145,10 @@ private:
                     size_t start = m_pos;
                     while (m_pos < m_html.size() && m_html[m_pos] != '<') ++m_pos;
                     std::string text = trim(m_html.substr(start, m_pos - start));
-                    if (!text.empty() && !node->isFlexContainer && node->name.empty()) {
-                        node->name = text;
+                    if (!text.empty()) {
+                        if (node->textContent.empty()) {
+                            node->textContent = text;
+                        }
                     }
                     continue;
                 }

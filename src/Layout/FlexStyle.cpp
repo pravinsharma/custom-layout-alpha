@@ -258,6 +258,24 @@ void FlexStyle::applyStyle() {
             borderColor = parseColor(value);
         } else if (propLower == "background-color") {
             backgroundColor = parseColor(value);
+        } else if (propLower == "color") {
+            color = parseColor(value);
+        } else if (propLower == "font-family") {
+            std::string v = value;
+            size_t comma = v.find(',');
+            if (comma != std::string::npos) {
+                v = trim(v.substr(0, comma));
+            }
+            size_t firstQuote = v.find('"');
+            size_t lastQuote = v.rfind('"');
+            if (firstQuote != std::string::npos && lastQuote != std::string::npos && firstQuote != lastQuote) {
+                v = v.substr(firstQuote + 1, lastQuote - firstQuote - 1);
+            }
+            fontFamily = trim(v);
+        } else if (propLower == "font-size") {
+            fontSize = parseFloatValue(value);
+        } else if (propLower == "font-weight") {
+            fontWeight = std::stoi(value);
         } else if (propLower == "min-width") {
             minWidth = parseFloatValue(value);
         } else if (propLower == "max-width") {

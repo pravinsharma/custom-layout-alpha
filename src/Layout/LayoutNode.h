@@ -38,6 +38,7 @@ struct LayoutNode {
     std::optional<Graphics::Color> backgroundColor;
     std::optional<Graphics::Color> borderColor;
 
+    std::string textContent;
     std::string inlineStyle;
 
     LayoutNode* parent = nullptr;

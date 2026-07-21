@@ -52,35 +52,64 @@ VulkanRenderer::VulkanRenderer(GLFWwindow* window)
     , m_needsResize(false)
     , m_resizeThrottle(0)
     , m_pendingExtent({0, 0})
+    , m_msaaColorImage(VK_NULL_HANDLE)
+    , m_msaaColorImageMemory(VK_NULL_HANDLE)
+    , m_msaaColorImageView(VK_NULL_HANDLE)
 {
 }
 
-VulkanRenderer::~VulkanRenderer()
-{
+VulkanRenderer::~VulkanRenderer() {
     shutdown();
 }
 
-bool VulkanRenderer::initialize()
-{
+bool VulkanRenderer::initialize() {
+    std::cerr << "[VULKAN] initialize start\n";
     if (!createInstance()) return false;
+    std::cerr << "[VULKAN] createInstance done\n";
     if (!pickPhysicalDevice()) return false;
+    std::cerr << "[VULKAN] pickPhysicalDevice done\n";
     if (!createLogicalDevice()) return false;
+    std::cerr << "[VULKAN] createLogicalDevice done\n";
     if (!createSurface()) return false;
+    std::cerr << "[VULKAN] createSurface done\n";
     if (!createSwapchain()) return false;
-    if (!createRenderPass()) return false;
-    if (!createPipeline()) return false;
-    if (!createFramebuffers()) return false;
+    std::cerr << "[VULKAN] createSwapchain done\n";
     if (!createCommandPool()) return false;
+    std::cerr << "[VULKAN] createCommandPool done\n";
+    if (!createRenderPass()) return false;
+    std::cerr << "[VULKAN] createRenderPass done\n";
+    if (!createPipeline()) return false;
+    std::cerr << "[VULKAN] createPipeline done\n";
+    // Single-sampled: skip MSAA image creation, just transition swapchain images
+    for (size_t i = 0; i < m_swapchainImages.size(); ++i) {
+        transitionImageLayout(m_swapchainImages[i], m_swapchainImageFormat,
+                              VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+    }
+    if (!createFramebuffers()) return false;
+    std::cerr << "[VULKAN] createFramebuffers done\n";
     if (!allocateCommandBuffers()) return false;
+    std::cerr << "[VULKAN] allocateCommandBuffers done\n";
     if (!createSyncObjects()) return false;
+    std::cerr << "[VULKAN] createSyncObjects done\n";
     if (!createVertexBuffer()) return false;
+    std::cerr << "[VULKAN] createVertexBuffer done\n";
+
+    m_textRenderer.setExtent(m_extent);
+    std::cerr << "[VULKAN] about to init text renderer\n";
+    if (!m_textRenderer.initialize(m_device, m_physicalDevice, m_graphicsQueueFamily,
+                                   m_commandPool, m_graphicsQueue, m_renderPass)) {
+        std::cerr << "Failed to initialize text renderer\n";
+        return false;
+    }
+    std::cerr << "[VULKAN] text renderer initialized\n";
 
     return true;
 }
 
-void VulkanRenderer::shutdown()
-{
+void VulkanRenderer::shutdown() {
     waitIdle();
+
+    m_textRenderer.shutdown();
 
     if (m_vertexBuffer != VK_NULL_HANDLE) {
         vkDestroyBuffer(m_device, m_vertexBuffer, nullptr);
@@ -110,6 +139,19 @@ void VulkanRenderer::shutdown()
     }
 
     cleanupSwapchain();
+
+    if (m_msaaColorImageView != VK_NULL_HANDLE) {
+        vkDestroyImageView(m_device, m_msaaColorImageView, nullptr);
+        m_msaaColorImageView = VK_NULL_HANDLE;
+    }
+    if (m_msaaColorImageMemory != VK_NULL_HANDLE) {
+        vkFreeMemory(m_device, m_msaaColorImageMemory, nullptr);
+        m_msaaColorImageMemory = VK_NULL_HANDLE;
+    }
+    if (m_msaaColorImage != VK_NULL_HANDLE) {
+        vkDestroyImage(m_device, m_msaaColorImage, nullptr);
+        m_msaaColorImage = VK_NULL_HANDLE;
+    }
 
     if (m_pipeline != VK_NULL_HANDLE) {
         vkDestroyPipeline(m_device, m_pipeline, nullptr);
@@ -142,8 +184,8 @@ void VulkanRenderer::shutdown()
     }
 }
 
-void VulkanRenderer::render(const RenderCommandList& commands)
-{
+void VulkanRenderer::render(const RenderCommandList& commands) {
+    // [RENDER] start
     if (m_needsResize) {
         int width = 0;
         int height = 0;
@@ -176,10 +218,22 @@ void VulkanRenderer::render(const RenderCommandList& commands)
         return;
     }
 
-    while (vkWaitForFences(m_device, 1, &m_inFlightFences[m_currentFrame], VK_TRUE, 1000000) != VK_SUCCESS) {
-        if (m_extent.width == 0 || m_extent.height == 0) {
-            m_currentFrame = (m_currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
-            return;
+    {
+        int fenceRetries = 0;
+        VkResult fenceResult;
+        while ((fenceResult = vkWaitForFences(m_device, 1, &m_inFlightFences[m_currentFrame], VK_TRUE, 1000000)) != VK_SUCCESS) {
+            if (fenceResult == VK_ERROR_DEVICE_LOST) {
+                std::cerr << "[RENDER] VK_ERROR_DEVICE_LOST on fence wait! frame=" << m_currentFrame << "\n";
+                std::abort();
+            }
+            if (m_extent.width == 0 || m_extent.height == 0) {
+                m_currentFrame = (m_currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+                return;
+            }
+            if (++fenceRetries > 100) {
+                std::cerr << "[RENDER] fence timeout after 100 retries, device lost?\n";
+                std::abort();
+            }
         }
     }
     vkResetFences(m_device, 1, &m_inFlightFences[m_currentFrame]);
@@ -198,11 +252,23 @@ void VulkanRenderer::render(const RenderCommandList& commands)
         return;
     }
 
-    vkResetCommandBuffer(m_commandBuffers[imageIndex], 0);
+    if (result != VK_SUCCESS) {
+        std::cerr << "Failed to acquire swapchain image, result=" << result << "\n";
+        m_currentFrame = (m_currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+        return;
+    }
+
+    RenderCommandList mutableCommands = commands;
+    m_textRenderer.processTextCommands(mutableCommands);
+
+    vkResetCommandBuffer(m_commandBuffers[m_currentFrame], 0);
 
     VkCommandBufferBeginInfo beginInfo = {};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    vkBeginCommandBuffer(m_commandBuffers[imageIndex], &beginInfo);
+    if (vkBeginCommandBuffer(m_commandBuffers[m_currentFrame], &beginInfo) != VK_SUCCESS) {
+        std::cerr << "vkBeginCommandBuffer failed! frame=" << m_currentFrame << "\n";
+        std::abort();
+    }
 
     VkRenderPassBeginInfo renderPassInfo = {};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -211,12 +277,12 @@ void VulkanRenderer::render(const RenderCommandList& commands)
     renderPassInfo.renderArea.offset = {0, 0};
     renderPassInfo.renderArea.extent = m_extent;
 
-    VkClearValue clearColor = {{{0.1f, 0.1f, 0.1f, 1.0f}}};
+    VkClearValue clearColors[1] = {};
+    clearColors[0].color = {{0.1f, 0.1f, 0.1f, 1.0f}};
     renderPassInfo.clearValueCount = 1;
-    renderPassInfo.pClearValues = &clearColor;
+    renderPassInfo.pClearValues = clearColors;
 
-    vkCmdBeginRenderPass(m_commandBuffers[imageIndex], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-    vkCmdBindPipeline(m_commandBuffers[imageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline);
+    vkCmdBeginRenderPass(m_commandBuffers[m_currentFrame], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
     VkViewport viewport = {};
     viewport.x = 0.0f;
@@ -225,31 +291,29 @@ void VulkanRenderer::render(const RenderCommandList& commands)
     viewport.height = static_cast<float>(m_extent.height);
     viewport.minDepth = 0.0f;
     viewport.maxDepth = 1.0f;
-    vkCmdSetViewport(m_commandBuffers[imageIndex], 0, 1, &viewport);
+    vkCmdSetViewport(m_commandBuffers[m_currentFrame], 0, 1, &viewport);
 
     VkRect2D scissor = {};
     scissor.offset = {0, 0};
     scissor.extent = m_extent;
-    vkCmdSetScissor(m_commandBuffers[imageIndex], 0, 1, &scissor);
+    vkCmdSetScissor(m_commandBuffers[m_currentFrame], 0, 1, &scissor);
 
     VkDeviceSize offsets[] = {0};
-    vkCmdBindVertexBuffers(m_commandBuffers[imageIndex], 0, 1, &m_vertexBuffer, offsets);
+    vkCmdBindVertexBuffers(m_commandBuffers[m_currentFrame], 0, 1, &m_vertexBuffer, offsets);
 
     for (const auto& cmd : commands) {
         if (cmd.type != RenderCommand::Type::Rect) continue;
 
         if (cmd.hasScissor) {
-            VkRect2D nodeScissor = {};
-            nodeScissor.offset.x = static_cast<int32_t>(cmd.scissor.x);
-            nodeScissor.offset.y = static_cast<int32_t>(cmd.scissor.y);
-            nodeScissor.extent.width = static_cast<uint32_t>(std::max(0.0f, cmd.scissor.width));
-            nodeScissor.extent.height = static_cast<uint32_t>(std::max(0.0f, cmd.scissor.height));
-            vkCmdSetScissor(m_commandBuffers[imageIndex], 0, 1, &nodeScissor);
+            VkRect2D scissor = {};
+            scissor.offset = {static_cast<int32_t>(cmd.scissor.x), static_cast<int32_t>(cmd.scissor.y)};
+            scissor.extent = {static_cast<uint32_t>(cmd.scissor.width), static_cast<uint32_t>(cmd.scissor.height)};
+            vkCmdSetScissor(m_commandBuffers[m_currentFrame], 0, 1, &scissor);
         } else {
-            VkRect2D fullScissor = {};
-            fullScissor.offset = {0, 0};
-            fullScissor.extent = m_extent;
-            vkCmdSetScissor(m_commandBuffers[imageIndex], 0, 1, &fullScissor);
+            VkRect2D scissor = {};
+            scissor.offset = {0, 0};
+            scissor.extent = m_extent;
+            vkCmdSetScissor(m_commandBuffers[m_currentFrame], 0, 1, &scissor);
         }
 
         float x = cmd.rect.x;
@@ -257,15 +321,10 @@ void VulkanRenderer::render(const RenderCommandList& commands)
         float w = cmd.rect.width;
         float h = cmd.rect.height;
 
-        float minX = x;
-        float minY = y;
-        float maxX = x + w;
-        float maxY = y + h;
-
-        float left = (minX / static_cast<float>(m_extent.width)) * 2.0f - 1.0f;
-        float right = (maxX / static_cast<float>(m_extent.width)) * 2.0f - 1.0f;
-        float top = (minY / static_cast<float>(m_extent.height)) * 2.0f - 1.0f;
-        float bottom = (maxY / static_cast<float>(m_extent.height)) * 2.0f - 1.0f;
+        float left = (x / static_cast<float>(m_extent.width)) * 2.0f - 1.0f;
+        float right = ((x + w) / static_cast<float>(m_extent.width)) * 2.0f - 1.0f;
+        float top = (y / static_cast<float>(m_extent.height)) * 2.0f - 1.0f;
+        float bottom = ((y + h) / static_cast<float>(m_extent.height)) * 2.0f - 1.0f;
 
         float pushData[20] = {
             (right - left), 0.0f, 0.0f, 0.0f,
@@ -275,13 +334,23 @@ void VulkanRenderer::render(const RenderCommandList& commands)
             cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a
         };
 
-        vkCmdPushConstants(m_commandBuffers[imageIndex], m_pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(pushData), pushData);
-        vkCmdDraw(m_commandBuffers[imageIndex], 6, 1, 0, 0);
+        vkCmdBindPipeline(m_commandBuffers[m_currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline);
+        vkCmdPushConstants(m_commandBuffers[m_currentFrame], m_pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(pushData), pushData);
+        vkCmdDraw(m_commandBuffers[m_currentFrame], 6, 1, 0, 0);
     }
 
-    vkCmdEndRenderPass(m_commandBuffers[imageIndex]);
+    {
+        VkRect2D scissor = {};
+        scissor.offset = {0, 0};
+        scissor.extent = m_extent;
+        vkCmdSetScissor(m_commandBuffers[m_currentFrame], 0, 1, &scissor);
+    }
 
-    if (vkEndCommandBuffer(m_commandBuffers[imageIndex]) != VK_SUCCESS) {
+    m_textRenderer.render(m_commandBuffers[m_currentFrame], mutableCommands);
+
+    vkCmdEndRenderPass(m_commandBuffers[m_currentFrame]);
+
+    if (vkEndCommandBuffer(m_commandBuffers[m_currentFrame]) != VK_SUCCESS) {
         throw std::runtime_error("Failed to record command buffer");
     }
 
@@ -294,13 +363,17 @@ void VulkanRenderer::render(const RenderCommandList& commands)
     submitInfo.pWaitSemaphores = waitSemaphores;
     submitInfo.pWaitDstStageMask = waitStages;
     submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &m_commandBuffers[imageIndex];
+    submitInfo.pCommandBuffers = &m_commandBuffers[m_currentFrame];
 
     VkSemaphore signalSemaphores[] = {m_renderFinishedSemaphores[m_currentFrame]};
     submitInfo.signalSemaphoreCount = 1;
     submitInfo.pSignalSemaphores = signalSemaphores;
 
-    vkQueueSubmit(m_graphicsQueue, 1, &submitInfo, m_inFlightFences[m_currentFrame]);
+    result = vkQueueSubmit(m_graphicsQueue, 1, &submitInfo, m_inFlightFences[m_currentFrame]);
+    if (result != VK_SUCCESS) {
+        std::cerr << "[RENDER] vkQueueSubmit failed: " << result << "\n";
+        if (result == VK_ERROR_DEVICE_LOST) std::abort();
+    }
 
     VkPresentInfoKHR presentInfo = {};
     presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
@@ -311,6 +384,10 @@ void VulkanRenderer::render(const RenderCommandList& commands)
     presentInfo.pImageIndices = &imageIndex;
 
     result = vkQueuePresentKHR(m_presentQueue, &presentInfo);
+    if (result == VK_ERROR_DEVICE_LOST) {
+        std::cerr << "[RENDER] VK_ERROR_DEVICE_LOST on present!\n";
+        std::abort();
+    }
 
     if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
         m_needsResize = true;
@@ -319,15 +396,56 @@ void VulkanRenderer::render(const RenderCommandList& commands)
     m_currentFrame = (m_currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 }
 
-void VulkanRenderer::waitIdle() const
-{
+void VulkanRenderer::transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout) {
+    VkCommandBufferAllocateInfo allocInfo = {};
+    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    allocInfo.commandPool = m_commandPool;
+    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    allocInfo.commandBufferCount = 1;
+
+    VkCommandBuffer cmd;
+    vkAllocateCommandBuffers(m_device, &allocInfo, &cmd);
+
+    VkCommandBufferBeginInfo beginInfo = {};
+    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+    vkBeginCommandBuffer(cmd, &beginInfo);
+
+    VkImageMemoryBarrier barrier = {};
+    barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+    barrier.srcAccessMask = 0;
+    barrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    barrier.oldLayout = oldLayout;
+    barrier.newLayout = newLayout;
+    barrier.image = image;
+    barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    barrier.subresourceRange.baseMipLevel = 0;
+    barrier.subresourceRange.levelCount = 1;
+    barrier.subresourceRange.baseArrayLayer = 0;
+    barrier.subresourceRange.layerCount = 1;
+
+    VkPipelineStageFlags srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+    VkPipelineStageFlags dstStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+
+    vkCmdPipelineBarrier(cmd, srcStage, dstStage, 0, 0, nullptr, 0, nullptr, 1, &barrier);
+    vkEndCommandBuffer(cmd);
+
+    VkSubmitInfo submitInfo = {};
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &cmd;
+    vkQueueSubmit(m_graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
+    vkQueueWaitIdle(m_graphicsQueue);
+    vkFreeCommandBuffers(m_device, m_commandPool, 1, &cmd);
+}
+
+void VulkanRenderer::waitIdle() const {
     if (m_device != VK_NULL_HANDLE) {
         vkDeviceWaitIdle(m_device);
     }
 }
 
-bool VulkanRenderer::createInstance()
-{
+bool VulkanRenderer::createInstance() {
     VkApplicationInfo appInfo = {};
     appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
     appInfo.pApplicationName = "VulkanApp";
@@ -355,8 +473,7 @@ bool VulkanRenderer::createInstance()
     return true;
 }
 
-bool VulkanRenderer::pickPhysicalDevice()
-{
+bool VulkanRenderer::pickPhysicalDevice() {
     uint32_t deviceCount = 0;
     vkEnumeratePhysicalDevices(m_instance, &deviceCount, nullptr);
 
@@ -383,8 +500,7 @@ bool VulkanRenderer::pickPhysicalDevice()
     return true;
 }
 
-bool VulkanRenderer::createLogicalDevice()
-{
+bool VulkanRenderer::createLogicalDevice() {
     uint32_t queueFamilyCount = 0;
     vkGetPhysicalDeviceQueueFamilyProperties(m_physicalDevice, &queueFamilyCount, nullptr);
 
@@ -431,8 +547,7 @@ bool VulkanRenderer::createLogicalDevice()
     return true;
 }
 
-bool VulkanRenderer::createSurface()
-{
+bool VulkanRenderer::createSurface() {
     if (glfwCreateWindowSurface(m_instance, m_window, nullptr, &m_surface) != VK_SUCCESS) {
         std::cerr << "Failed to create window surface\n";
         return false;
@@ -440,8 +555,7 @@ bool VulkanRenderer::createSurface()
     return true;
 }
 
-bool VulkanRenderer::createSwapchain()
-{
+bool VulkanRenderer::createSwapchain() {
     int width = 0;
     int height = 0;
     glfwGetFramebufferSize(m_window, &width, &height);
@@ -491,7 +605,7 @@ bool VulkanRenderer::createSwapchain()
     createInfo.pQueueFamilyIndices = &m_graphicsQueueFamily;
     createInfo.preTransform = capabilities.currentTransform;
     createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-    createInfo.presentMode = VK_PRESENT_MODE_FIFO_KHR;
+    createInfo.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
     createInfo.clipped = VK_TRUE;
 
     if (vkCreateSwapchainKHR(m_device, &createInfo, nullptr, &m_swapchain) != VK_SUCCESS) {
@@ -526,8 +640,7 @@ bool VulkanRenderer::createSwapchain()
     return true;
 }
 
-bool VulkanRenderer::createRenderPass()
-{
+bool VulkanRenderer::createRenderPass() {
     VkAttachmentDescription colorAttachment = {};
     colorAttachment.format = m_swapchainImageFormat;
     colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -535,7 +648,7 @@ bool VulkanRenderer::createRenderPass()
     colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
     colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
     colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    colorAttachment.initialLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
     colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
     VkAttachmentReference colorAttachmentRef = {};
@@ -546,6 +659,7 @@ bool VulkanRenderer::createRenderPass()
     subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
     subpass.colorAttachmentCount = 1;
     subpass.pColorAttachments = &colorAttachmentRef;
+    subpass.pResolveAttachments = nullptr;
 
     VkSubpassDependency dependency = {};
     dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
@@ -554,10 +668,12 @@ bool VulkanRenderer::createRenderPass()
     dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
     dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 
+    VkAttachmentDescription attachments[] = {colorAttachment};
+
     VkRenderPassCreateInfo renderPassInfo = {};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
     renderPassInfo.attachmentCount = 1;
-    renderPassInfo.pAttachments = &colorAttachment;
+    renderPassInfo.pAttachments = attachments;
     renderPassInfo.subpassCount = 1;
     renderPassInfo.pSubpasses = &subpass;
     renderPassInfo.dependencyCount = 1;
@@ -571,8 +687,12 @@ bool VulkanRenderer::createRenderPass()
     return true;
 }
 
-bool VulkanRenderer::createPipeline()
-{
+bool VulkanRenderer::createMsaaImage() {
+    // Single-sampled: no MSAA image needed
+    return true;
+}
+
+bool VulkanRenderer::createPipeline() {
     VkPushConstantRange pushConstantRange = {};
     pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
     pushConstantRange.offset = 0;
@@ -740,18 +860,15 @@ bool VulkanRenderer::createPipeline()
     return true;
 }
 
-bool VulkanRenderer::createFramebuffers()
-{
+bool VulkanRenderer::createFramebuffers() {
     m_framebuffers.resize(m_swapchainImageViews.size());
 
     for (size_t i = 0; i < m_swapchainImageViews.size(); ++i) {
-        VkImageView attachments[] = {m_swapchainImageViews[i]};
-
         VkFramebufferCreateInfo framebufferInfo = {};
         framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
         framebufferInfo.renderPass = m_renderPass;
         framebufferInfo.attachmentCount = 1;
-        framebufferInfo.pAttachments = attachments;
+        framebufferInfo.pAttachments = &m_swapchainImageViews[i];
         framebufferInfo.width = m_extent.width;
         framebufferInfo.height = m_extent.height;
         framebufferInfo.layers = 1;
@@ -765,8 +882,7 @@ bool VulkanRenderer::createFramebuffers()
     return true;
 }
 
-bool VulkanRenderer::createCommandPool()
-{
+bool VulkanRenderer::createCommandPool() {
     VkCommandPoolCreateInfo poolInfo = {};
     poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
     poolInfo.queueFamilyIndex = m_graphicsQueueFamily;
@@ -780,9 +896,8 @@ bool VulkanRenderer::createCommandPool()
     return true;
 }
 
-bool VulkanRenderer::allocateCommandBuffers()
-{
-    m_commandBuffers.resize(m_framebuffers.size());
+bool VulkanRenderer::allocateCommandBuffers() {
+    m_commandBuffers.resize(MAX_FRAMES_IN_FLIGHT);
 
     VkCommandBufferAllocateInfo allocInfo = {};
     allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -798,8 +913,7 @@ bool VulkanRenderer::allocateCommandBuffers()
     return true;
 }
 
-bool VulkanRenderer::createSyncObjects()
-{
+bool VulkanRenderer::createSyncObjects() {
     m_imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
     m_renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
     m_inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
@@ -823,8 +937,7 @@ bool VulkanRenderer::createSyncObjects()
     return true;
 }
 
-void VulkanRenderer::cleanupSwapchain()
-{
+void VulkanRenderer::cleanupSwapchain() {
     for (auto& framebuffer : m_framebuffers) {
         vkDestroyFramebuffer(m_device, framebuffer, nullptr);
     }
@@ -841,8 +954,7 @@ void VulkanRenderer::cleanupSwapchain()
     }
 }
 
-bool VulkanRenderer::recreateSwapchain()
-{
+bool VulkanRenderer::recreateSwapchain() {
     int width = 0;
     int height = 0;
     glfwGetFramebufferSize(m_window, &width, &height);
@@ -865,10 +977,30 @@ bool VulkanRenderer::recreateSwapchain()
     cleanupSwapchain();
 
     m_extent = newExtent;
+    m_textRenderer.setExtent(m_extent);
+
+    if (m_msaaColorImageView != VK_NULL_HANDLE) {
+        vkDestroyImageView(m_device, m_msaaColorImageView, nullptr);
+        m_msaaColorImageView = VK_NULL_HANDLE;
+    }
+    if (m_msaaColorImageMemory != VK_NULL_HANDLE) {
+        vkFreeMemory(m_device, m_msaaColorImageMemory, nullptr);
+        m_msaaColorImageMemory = VK_NULL_HANDLE;
+    }
+    if (m_msaaColorImage != VK_NULL_HANDLE) {
+        vkDestroyImage(m_device, m_msaaColorImage, nullptr);
+        m_msaaColorImage = VK_NULL_HANDLE;
+    }
 
     if (!createSwapchain()) {
         std::cerr << "Failed to recreate swapchain\n";
         return false;
+    }
+
+    // Single-sampled: no MSAA image to recreate
+    for (size_t i = 0; i < m_swapchainImages.size(); ++i) {
+        transitionImageLayout(m_swapchainImages[i], m_swapchainImageFormat,
+                              VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
     }
 
     if (!createFramebuffers()) {
@@ -889,8 +1021,7 @@ bool VulkanRenderer::recreateSwapchain()
     return true;
 }
 
-bool VulkanRenderer::createVertexBuffer()
-{
+bool VulkanRenderer::createVertexBuffer() {
     VkDeviceSize bufferSize = sizeof(quadVertices[0]) * quadVertices.size();
 
     VkBufferCreateInfo bufferInfo = {};

@@ -56,12 +56,22 @@ Goal: a complete, spec-faithful CSS flexbox layout system for versatile GUI deve
 - [x] `src/Graphics/RenderCommand.h` — added `float opacity` and `int32_t zIndex`
 - [x] `src/Graphics/RenderCommandBuilder.cpp` — propagates `opacity` and `zIndex` from `LayoutNode` to `RenderCommand`
 
-## Phase 4 — Future (out of scope for now)
-- [x] Vulkan renderer integration for colored rects
-  - [x] `src/Graphics/VulkanRenderer.h/.cpp` — Vulkan instance, device, swapchain, render pass, pipeline, framebuffers, command buffers, sync objects
-  - [x] `src/Graphics/shaders/quad.vert` / `quad.frag` — vertex/fragment shaders for colored rectangles
-  - [x] `buildRenderTree()` outputs `RenderCommand::Type::Rect` consumed by renderer
-  - [x] `main.cpp` wired to render computed layout in a window
+## Phase 4 — Text Rendering
+- [ ] `src/Graphics/FontManager.h/.cpp` — FreeType initialization, font face loading, multi-font support
+- [ ] `src/Graphics/GlyphAtlas.h/.cpp` — glyph bitmap atlas, SDF or anti-aliased bitmap caching, UV lookup
+- [ ] `src/Graphics/TextLayout.h/.cpp` — glyph shaping, line breaking, alignment, truncation
+- [ ] `src/Graphics/TextRenderer.h/.cpp` — Vulkan text pipeline, glyph quad generation, batching
+- [ ] `src/Layout/FlexStyle.h/.cpp` — CSS text properties: `font-family`, `font-size`, `font-weight`, `color`, `text-align`
+- [ ] `src/Layout/LayoutNode.h` — text content storage, computed font properties
+- [ ] `src/Layout/HtmlParser.h/.cpp` — text node extraction from HTML
+- [ ] `src/Graphics/RenderCommand.h` — `Text` command with glyph indices, UVs, font ID
+- [ ] `src/Graphics/RenderCommandBuilder.cpp` — text node → `RenderCommand::Type::Text` conversion
+- [ ] `src/Graphics/VulkanRenderer.h/.cpp` — MSAA render pass, glyph atlas texture, separate text pipeline
+- [ ] `src/Graphics/shaders/text.vert` / `text.frag` — textured quad shaders with gamma correction
+- [ ] Sharp/smooth rendering: 4x MSAA, sRGB output, integer pixel snapping, gamma-correct blending
+- [ ] `examples/app/11-typography/main.cpp` — render actual text with multiple font families and weights
+
+## Phase 5 — Future (out of scope for now)
 - [ ] CSS cascade / selector matching
 - [ ] Dirty layout / incremental recompute
 - [ ] Animation / transition hooks

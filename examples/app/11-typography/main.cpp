@@ -6,6 +6,9 @@
 #include "Graphics/VulkanRenderer.h"
 
 #include <iostream>
+#include <fstream>
+#include <chrono>
+#include <thread>
 
 using namespace vkapp::Layout;
 
@@ -26,13 +29,13 @@ int main()
 
         double lastInteractionTime = glfwGetTime();
 
-        dispatcher.addListener([&](const vkapp::Core::Event& event) -> bool {
+        dispatcher.addListener([&](const vkapp::Core::Event &event) -> bool
+                               {
             if (event.isInCategory(vkapp::Core::EventCategory::Input))
             {
                 lastInteractionTime = glfwGetTime();
             }
-            return false;
-        });
+            return false; });
 
         auto rootCss = parseCss(R"(
             body {
@@ -100,31 +103,34 @@ int main()
             .card-label {
                 height: 14px;
             }
-            .heading1 {
+            h1 {
                 height: 36px;
             }
-            .heading2 {
+            h2 {
                 height: 28px;
             }
-            .heading3 {
+            h3 {
                 height: 24px;
             }
-            .body-text {
+            h4 {
                 height: 22px;
             }
-            .caption-text {
+            h5 {
                 height: 20px;
             }
-            .mono-text {
-                height: 20px;
+            h6 {
+                height: 18px;
+            }
+            p {
+                height: 22px;
             }
         )");
 
         auto rootHtml = parseHtml(R"(
             <body class="body" width="800" height="900">
               <div class="hero">
-                <div class="heading1">Typography Design Essentials</div>
-                <div class="body-text">Good type. Better design.</div>
+                <h1>Typography Design Essentials</h1>
+                <p>Good type. Better design.</p>
               </div>
 
               <div class="section section-1">
@@ -132,19 +138,19 @@ int main()
                 <div class="row">
                   <div class="card">
                     <div class="card-label">Roboto — Sans Serif</div>
-                    <div class="heading1">The quick brown fox</div>
+                    <h1>The quick brown fox</h1>
                   </div>
                   <div class="card">
                     <div class="card-label">Open Sans — Humanist</div>
-                    <div class="body-text">The quick brown fox</div>
+                    <p>The quick brown fox</p>
                   </div>
                   <div class="card">
                     <div class="card-label">Times New Roman — Serif</div>
-                    <div class="body-text" style="font-family:'Times New Roman';">The quick brown fox</div>
+                    <p style="font-family:'Times New Roman';">The quick brown fox</p>
                   </div>
                   <div class="card">
                     <div class="card-label">Courier New — Monospace</div>
-                    <div class="mono-text">The quick brown fox</div>
+                    <h6 style="font-family:'Courier New';">The quick brown fox</h6>
                   </div>
                 </div>
               </div>
@@ -152,12 +158,13 @@ int main()
               <div class="section section-2">
                 <div class="section-label">02  Type Scale</div>
                 <div class="col">
-                  <div class="heading1">Heading 1 — 32px Bold</div>
-                  <div class="heading2">Heading 2 — 22px Medium</div>
-                  <div class="heading3">Heading 3 — 18px Condensed Bold</div>
-                  <div class="body-text">Body — 16px Open Sans Regular. Typography is the art and technique of arranging type to make written language legible, readable and visually appealing.</div>
-                  <div class="caption-text">Caption — 13px Open Sans Light. Used for secondary information and labels.</div>
-                  <div class="mono-text">Mono — 16px Courier New. var x = 42; let name = "VePL";</div>
+                  <h1>Heading 1 — 32px Bold</h1>
+                  <h2>Heading 2 — 22px Medium</h2>
+                  <h3>Heading 3 — 18px Condensed Bold</h3>
+                  <h4>Heading 4 — 16px Medium</h4>
+                  <h5>Heading 5 — 13px Medium</h5>
+                  <h6>Heading 6 — 11px Medium</h6>
+                  <p>Body — 16px Open Sans Regular. Typography is the art and technique of arranging type to make written language legible, readable and visually appealing.</p>
                 </div>
               </div>
 
@@ -166,15 +173,15 @@ int main()
                 <div class="row">
                   <div class="card">
                     <div class="card-label">Light (300)</div>
-                    <div class="caption-text" style="font-weight:300;">Aa Bb Cc</div>
+                    <h5 style="font-weight:300;">Aa Bb Cc</h5>
                   </div>
                   <div class="card">
                     <div class="card-label">Regular (400)</div>
-                    <div class="body-text" style="font-weight:400;">Aa Bb Cc</div>
+                    <p style="font-weight:400;">Aa Bb Cc</p>
                   </div>
                   <div class="card">
                     <div class="card-label">Bold (700)</div>
-                    <div class="body-text" style="font-weight:700;">Aa Bb Cc</div>
+                    <p style="font-weight:700;">Aa Bb Cc</p>
                   </div>
                 </div>
               </div>
@@ -186,7 +193,7 @@ int main()
         vkapp::Layout::FlexLayoutEngine engine;
         engine.computeLayout(*rootHtml, 800.0f, 900.0f);
 
-        auto commands = vkapp::Graphics::buildRenderTree(*rootHtml, 0, true);
+        auto commands = vkapp::Graphics::buildRenderTree(*rootHtml, 0, false);
 
         std::cout << "Computed layout:\n";
         for (const auto &cmd : commands)
@@ -197,7 +204,7 @@ int main()
 
         std::cout << "\nLayout dump:\n";
         std::cout << vkapp::Layout::LayoutDumper::dumpTree(*rootHtml, {.includeRenderXray = true,
-                                                                       .placeholderMode = true});
+                                                                       .placeholderMode = false});
 
         vkapp::Graphics::VulkanRenderer renderer(window.getHandle());
         if (!renderer.initialize())
@@ -212,11 +219,6 @@ int main()
         {
             window.pollEvents();
             renderer.render(commands);
-
-            if (glfwGetTime() - lastInteractionTime > 4.0)
-            {
-                glfwSetWindowShouldClose(window.getHandle(), GLFW_TRUE);
-            }
         }
 
         renderer.waitIdle();

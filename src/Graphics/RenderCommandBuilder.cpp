@@ -1,5 +1,6 @@
 #include "RenderCommandBuilder.h"
 #include "Layout/LayoutNode.h"
+#include "Graphics/TextLayout.h"
 
 #include <algorithm>
 #include <cmath>
@@ -75,6 +76,12 @@ float approximateTextWidth(const std::string& name) {
     float charWidth = 9.0f;
     float width = static_cast<float>(chars) * charWidth + 10.0f;
     return std::max(width, 40.0f);
+}
+
+TextAlign resolveTextAlign(const std::string& align) {
+    if (align == "center") return TextAlign::Center;
+    if (align == "right") return TextAlign::Right;
+    return TextAlign::Left;
 }
 
 }
@@ -216,7 +223,26 @@ RenderCommandList buildRenderTree(const vkapp::Layout::LayoutNode& node, int dep
     cmd.type = RenderCommand::Type::Rect;
 
     if (placeholderMode) {
-        if (isLeaf) {
+        if (isLeaf && !node.textContent.empty()) {
+            float textX = rect.x + bl;
+            float textY = rect.y + bt;
+            float innerWidth = std::max(0.0f, rect.width - bl - br);
+            float innerHeight = std::max(0.0f, rect.height - bt - bb);
+
+            RenderCommand textCmd;
+            textCmd.type = RenderCommand::Type::Text;
+            textCmd.rect = {textX, textY, innerWidth, innerHeight};
+            textCmd.color = linearize({0.0f, 0.0f, 0.0f, 1.0f});
+            textCmd.textContent = node.textContent;
+            textCmd.fontId = 0;
+            textCmd.fontSize = node.flex.fontSize > 0.0f ? node.flex.fontSize : 14.0f;
+            textCmd.fontWeight = node.flex.fontWeight;
+            textCmd.layer = static_cast<int32_t>(node.order);
+            textCmd.opacity = node.opacity;
+            textCmd.zIndex = node.positioning.zIndex;
+            applyScissor(textCmd);
+            commands.push_back(textCmd);
+        } else if (isLeaf) {
             float textWidth = approximateTextWidth(node.name);
             float textHeight = rect.height;
             float textX = rect.x + bl;
@@ -239,15 +265,39 @@ RenderCommandList buildRenderTree(const vkapp::Layout::LayoutNode& node, int dep
             cmd.color = colorForPlaceholder(depth, isCard);
         }
     } else {
-        cmd.rect = rect;
-        cmd.color = linearize(node.color.value_or(colorFromDepthAndName(depth, node.name)));
+        if (isLeaf && !node.textContent.empty()) {
+            RenderCommand textCmd;
+            textCmd.type = RenderCommand::Type::Text;
+            textCmd.rect = {
+                rect.x + bl,
+                rect.y + bt,
+                std::max(0.0f, rect.width - bl - br),
+                std::max(0.0f, rect.height - bt - bb)
+            };
+            textCmd.color = linearize(node.flex.color.value_or(node.color.value_or(colorFromDepthAndName(depth, node.name))));
+            textCmd.textContent = node.textContent;
+            textCmd.fontFamily = node.flex.fontFamily;
+            textCmd.fontId = UINT32_MAX;
+            textCmd.fontSize = node.flex.fontSize > 0.0f ? node.flex.fontSize : 14.0f;
+            textCmd.fontWeight = node.flex.fontWeight;
+            textCmd.layer = static_cast<int32_t>(node.order);
+            textCmd.opacity = node.opacity;
+            textCmd.zIndex = node.positioning.zIndex;
+            applyScissor(textCmd);
+            commands.push_back(textCmd);
+        } else {
+            cmd.rect = rect;
+            cmd.color = linearize(node.color.value_or(colorFromDepthAndName(depth, node.name)));
+        }
     }
 
-    cmd.layer = static_cast<int32_t>(node.order);
-    cmd.opacity = node.opacity;
-    cmd.zIndex = node.positioning.zIndex;
-    applyScissor(cmd);
-    commands.push_back(cmd);
+    if (cmd.type == RenderCommand::Type::Rect) {
+        cmd.layer = static_cast<int32_t>(node.order);
+        cmd.opacity = node.opacity;
+        cmd.zIndex = node.positioning.zIndex;
+        applyScissor(cmd);
+        commands.push_back(cmd);
+    }
 
     for (const auto* child : node.children) {
         auto childCommands = buildRenderTree(*child, depth + 1, placeholderMode, &currentScissor);

@@ -6,6 +6,7 @@
 #include <vulkan/vulkan.h>
 
 #include "Graphics/RenderCommand.h"
+#include "Graphics/TextRenderer.h"
 
 #include <vector>
 #include <array>
@@ -38,13 +39,16 @@ private:
     bool createSurface();
     bool createSwapchain();
     bool createRenderPass();
+    bool createMsaaImage();
     bool createPipeline();
+    bool createTextPipeline();
     bool createFramebuffers();
     bool createCommandPool();
     bool allocateCommandBuffers();
     bool createSyncObjects();
     bool createVertexBuffer();
 
+    void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
     void cleanupSwapchain();
     bool recreateSwapchain();
 
@@ -74,6 +78,12 @@ private:
 
     VkBuffer m_vertexBuffer;
     VkDeviceMemory m_vertexBufferMemory;
+
+    VkImage m_msaaColorImage;
+    VkDeviceMemory m_msaaColorImageMemory;
+    VkImageView m_msaaColorImageView;
+
+    TextRenderer m_textRenderer;
 
     bool m_needsResize;
     uint32_t m_resizeThrottle;

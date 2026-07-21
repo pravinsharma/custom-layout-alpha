@@ -97,6 +97,11 @@ struct FlexStyle {
 
     std::optional<Graphics::Color> backgroundColor;
     std::optional<Graphics::Color> borderColor;
+    std::optional<Graphics::Color> color;
+
+    std::string fontFamily = "sans-serif";
+    float fontSize = 16.0f;
+    int fontWeight = 400;
 
     float minWidth = 0.0f;
     float maxWidth = FLT_MAX;
